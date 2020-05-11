@@ -1,0 +1,26 @@
+{
+  "name": "@cypsela/sailplane-node",
+  "version": "1.0.0",
+  "description": "share folders and files directly",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cypsela/sailplane-node.git"
+  },
+  "keywords": [
+    "sailplane",
+    "p2p",
+    "ipfs",
+    "crdt",
+    "orbitdb"
+  ],
+  "author": "andersb@tuta.io",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cypsela/sailplane-node/issues"
+  },
+  "homepage": "https://github.com/cypsela/sailplane-node#readme"
+}
