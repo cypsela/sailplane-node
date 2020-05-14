@@ -3,15 +3,15 @@
 
 class SharedFS {
   constructor (db, ipfs, options = {}) {
-    this.db = db
+    this._db = db
     this._ipfs = ipfs
     this.options = options
 
-    this.address = this.db.address.bind(this.db)
-    this.events = this.db.events.bind(this.db)
-    this.combinedPath = this.db.combinedPath
-    this.tree = this.db.tree.bind(this.db)
-    this.ls = this.db.ls.bind(this.db)
+    this.address = this._db.address.bind(this._db)
+    this.events = this._db.events.bind(this._db)
+    this.combinedPath = this._db.combinedPath
+    this.tree = this._db.tree.bind(this._db)
+    this.ls = this._db.ls.bind(this._db)
   }
 
   static create (db, ipfs, options) {
