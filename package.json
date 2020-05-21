@@ -22,5 +22,10 @@
   "bugs": {
     "url": "https://github.com/cypsela/sailplane-node/issues"
   },
-  "homepage": "https://github.com/cypsela/sailplane-node#readme"
+  "homepage": "https://github.com/cypsela/sailplane-node#readme",
+  "dependencies": {
+    "@tabcat/orbit-db-fsstore": "^1.0.0",
+    "it-last": "^1.0.2",
+    "it-map": "^1.0.2"
+  }
 }

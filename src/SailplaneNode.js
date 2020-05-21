@@ -1,7 +1,7 @@
 
 'use strict'
 
-const FSStore = require('orbit-db-fsstore')
+const FSStore = require('@tabcat/orbit-db-fsstore')
 const SharedFS = require('./SharedFS')
 
 const ipfsKey = '_ipfs'
@@ -29,12 +29,9 @@ class SailplaneNode {
   }
 
   async mount (address, options = {}) {
-    if (this.mounted[address]) return this.mounted[address]
     const db = await this._orbitdb.open(address, options)
-    const sharedFS = SharedFS.create(db, this._orbitdb[ipfsKey], options)
-
-    this.mounted[address] = sharedFS
-    return sharedFS
+    this.mounted[address] = SharedFS.create(db, this._orbitdb[ipfsKey], options)
+    return this.mounted[address]
   }
 }
 
