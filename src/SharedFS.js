@@ -1,7 +1,7 @@
 
 'use strict'
 
-const map = require('it-map')
+const all = require('it-all')
 const last = require('it-last')
 
 const errors = {
@@ -52,9 +52,49 @@ class SharedFS {
     this.running = false
   }
 
-  async upload (path, name, source) {
+  async upload (path, source) {
     if (!this.content(path) !== 'dir') throw errors.pathDirNo(path)
-    map(this._ipfs.add(source, { pin: false }), console.log)
+
+    const prefix = (path) => path.slice(0, Math.max(path.lastIndexOf('/'), 0))
+    const name = (path) => path.slice(path.lastIndexOf('/') + 1)
+
+    async function addToStore (content) {
+      // parent(content.path) can be an empty string or a path
+      const fsPath = `${path}${prefix(content.path) && `/${prefix(content.path)}`}`
+
+      // handle dir
+      if (content.mode === '493') {
+        if (!this._db.exists(fsPath)) {
+          await this._db.mkdir(fsPath, name(content.path))
+        }
+      }
+
+      // handle file
+      if (content.mode === '420') {
+        if (!this._db.exists(fsPath)) {
+          await this._db.mk(fsPath, name(content.path))
+        }
+        await this._db.write(
+          this.joinPath(fsPath, name(content.path)),
+          content.cid.toString()
+        )
+      }
+    }
+
+    try {
+      const ipfsUpload = await all(this._ipfs.add(source, { pin: false }))
+      await Promise.all(
+        ipfsUpload
+          .reverse() // start from root uploaded dir
+          .map(this._ipfs.add(source, { pin: false }), addToStore)
+      )
+    } catch (e) {
+      console.error(e)
+      console.error(new Error('sharedfs.upload failed'))
+      console.error('path:'); console.error(path)
+      console.error('source:'); console.error(source)
+      throw e
+    }
   }
 
   async remove (path) {
