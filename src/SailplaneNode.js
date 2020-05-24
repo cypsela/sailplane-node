@@ -24,6 +24,16 @@ class SailplaneNode {
     return new SailplaneNode(orbitdb, options)
   }
 
+  static async stop () {
+    await Promise.all(
+      Object.keys(this.mounted)
+        .map(async (k) => {
+          await this.mounted[k].stop()
+          delete this.mounted[k]
+        })
+    )
+  }
+
   async determineAddress (name, options) {
     return this._orbitdb.determineAddress(name, FSStore.type, options)
   }
