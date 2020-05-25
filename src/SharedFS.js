@@ -86,7 +86,7 @@ class SharedFS {
       await Promise.all(
         ipfsUpload
           .reverse() // start from root uploaded dir
-          .map(this._ipfs.add(source, { pin: false }), addToStore)
+          .map(addToStore.bind(this))
       )
     } catch (e) {
       console.error(e)
