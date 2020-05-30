@@ -4,7 +4,7 @@
   "description": "share folders and files directly",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cross-env TEST=js mocha"
   },
   "repository": {
     "type": "git",
@@ -25,8 +25,17 @@
   "homepage": "https://github.com/cypsela/sailplane-node#readme",
   "dependencies": {
     "@tabcat/orbit-db-fsstore": "^1.0.0",
+    "cross-env": "^7.0.2",
     "it-all": "^1.0.2",
     "it-last": "^1.0.2",
     "p-queue": "^6.4.0"
+  },
+  "devDependencies": {
+    "ipfs-utils": "^2.2.2",
+    "it-first": "^1.0.2",
+    "mocha": "^7.2.0",
+    "orbit-db": "^0.24.1",
+    "orbit-db-test-utils": "^0.9.4",
+    "rimraf": "^3.0.2"
   }
 }
