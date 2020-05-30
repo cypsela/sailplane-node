@@ -17,14 +17,16 @@ class SailplaneNode {
       throw new Error('cannot find ipfs node in orbitdb instance')
     }
 
-    this._orbitdb.constructor.addDatabaseType(FSStore.type, FSStore)
+    if (!orbitdb.constructor.getDatabaseTypes()[FSStore.type]) {
+      orbitdb.constructor.addDatabaseType(FSStore.type, FSStore)
+    }
   }
 
-  static create (orbitdb, options = {}) {
+  static async create (orbitdb, options = {}) {
     return new SailplaneNode(orbitdb, options)
   }
 
-  static async stop () {
+  async stop () {
     await Promise.all(
       Object.keys(this.mounted)
         .map(async (k) => {
@@ -39,8 +41,10 @@ class SailplaneNode {
   }
 
   async mount (address, options = {}) {
+    address = address.toString()
     const db = await this._orbitdb.open(address, options)
-    this.mounted[address] = SharedFS.create(db, this._orbitdb[ipfsKey], options)
+    options.onStop = () => { delete this.mounted[address] }
+    this.mounted[address] = await SharedFS.create(db, this._orbitdb[ipfsKey], options)
     return this.mounted[address]
   }
 }
