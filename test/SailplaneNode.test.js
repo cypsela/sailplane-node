@@ -34,6 +34,7 @@ Object.keys(testAPIs).forEach(API => {
     after(async () => {
       if (sailplane1) {
         await sailplane1.stop()
+        assert.strict.deepEqual(sailplane1.mounted, {})
       }
 
       if (orbitdb1) {

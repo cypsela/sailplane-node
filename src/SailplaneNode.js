@@ -29,10 +29,7 @@ class SailplaneNode {
   async stop () {
     await Promise.all(
       Object.keys(this.mounted)
-        .map(async (k) => {
-          await this.mounted[k].stop()
-          delete this.mounted[k]
-        })
+        .map(k => this.mounted[k].stop())
     )
   }
 
