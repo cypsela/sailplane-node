@@ -6,6 +6,9 @@
   "scripts": {
     "test": "cross-env TEST=js mocha"
   },
+  "standard": {
+    "env": "mocha"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/cypsela/sailplane-node.git"
