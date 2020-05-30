@@ -1,6 +1,7 @@
 
 'use strict'
 
+const { default: PQueue } = require('p-queue')
 const all = require('it-all')
 const last = require('it-last')
 
@@ -16,66 +17,76 @@ class SharedFS {
     this._ipfs = ipfs
     this.options = options
 
-    this.address = this._db.address.bind(this._db)
-    this.events = this._db.events.bind(this._db)
+    this.address = this._db.address
+    this.events = this._db.events
 
-    this.joinPath = this._db.joinPath
-    this.exists = this._db.exists
-    this.content = this._db.content
-    this.read = this._db.read
-    this.tree = this._db.tree
-    this.ls = this._db.ls
+    this.fs = {}
+    this.fs.joinPath = this._db.joinPath
+    this.fs.exists = this._db.exists
+    this.fs.content = this._db.content
+    this.fs.read = this._db.read
+    this.fs.tree = this._db.tree
+    this.fs.ls = this._db.ls
 
-    this._onDbUpdate = () => this._getHash()
+    this._onStop = this.options.onStop || function () {}
 
-    this.running = false
-    if (options.start !== false) this.start()
+    // improvement: remove uncalled, queued promises on add of new promise
+    this._updateQueue = new PQueue()
+    this._onDbUpdate = () => this._updateQueue.add(() => this._getCid())
+
+    this.running = null
   }
 
-  static create (db, ipfs, options) {
-    return new SharedFS(db, ipfs, options)
+  static async create (db, ipfs, options = {}) {
+    const sharedfs = new SharedFS(db, ipfs, options)
+    if (options.start !== false) await sharedfs.start()
+    return sharedfs
   }
 
   async start () {
-    if (this.running) { return }
-    this._db.events.on('replicated', this._onDbUpdate)
-    this._db.events.on('write', this._onDbUpdate)
+    if (this.running !== null) { return }
+    this.events.on('replicated', this._onDbUpdate)
+    this.events.on('write', this._onDbUpdate)
     await this._db.load()
     this.running = true
+    this.events.emit('start')
   }
 
-  async stop () {
-    if (!this.running) { return }
-    this._db.events.removeListener('replicated', this._onDbUpdate)
-    this._db.events.removeListener('write', this._onDbUpdate)
-    await this._db.close()
+  async stop ({ drop } = {}) {
+    if (this.running !== true) { return }
+    await this._onStop()
+    this.events.removeListener('replicated', this._onDbUpdate)
+    this.events.removeListener('write', this._onDbUpdate)
+    await this._updateQueue.onIdle()
+    drop ? await this._db.drop() : await this._db.close()
     this.running = false
+    this.events.emit('stop')
   }
 
   async upload (path, source) {
-    if (!this.content(path) !== 'dir') throw errors.pathDirNo(path)
+    if (this.fs.content(path) !== 'dir') throw errors.pathDirNo(path)
 
     const prefix = (path) => path.slice(0, Math.max(path.lastIndexOf('/'), 0))
     const name = (path) => path.slice(path.lastIndexOf('/') + 1)
 
     async function addToStore (content) {
       // parent(content.path) can be an empty string or a path
-      const fsPath = `${path}${prefix(content.path) && `/${prefix(content.path)}`}`
+      const fsPath = `${path}${content.path && `/${content.path}`}`
 
       // handle dir
-      if (content.mode === '493') {
-        if (!this._db.exists(fsPath)) {
-          await this._db.mkdir(fsPath, name(content.path))
+      if (content.mode === 493) {
+        if (!this.fs.exists(fsPath)) {
+          await this._db.mkdir(prefix(fsPath), name(fsPath))
         }
       }
 
       // handle file
-      if (content.mode === '420') {
-        if (!this._db.exists(fsPath)) {
-          await this._db.mk(fsPath, name(content.path))
+      if (content.mode === 420) {
+        if (!this.fs.exists(fsPath)) {
+          await this._db.mk(prefix(fsPath), name(fsPath))
         }
         await this._db.write(
-          this.joinPath(fsPath, name(content.path)),
+          this.fs.joinPath(prefix(fsPath), name(fsPath)),
           content.cid.toString()
         )
       }
@@ -83,11 +94,13 @@ class SharedFS {
 
     try {
       const ipfsUpload = await all(this._ipfs.add(source, { pin: false }))
-      await Promise.all(
-        ipfsUpload
-          .reverse() // start from root uploaded dir
-          .map(addToStore.bind(this))
-      )
+      await ipfsUpload
+        .reverse() // start from root uploaded dir
+        .reduce(
+          async (a, c) => { await a; return addToStore.bind(this)(c) },
+          Promise.resolve()
+        )
+      this.events.emit('upload')
     } catch (e) {
       console.error(e)
       console.error(new Error('sharedfs.upload failed'))
@@ -97,37 +110,42 @@ class SharedFS {
     }
   }
 
+  async * read (path) {
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
+    yield * this._ipfs.get(await this._getCid(path))
+  }
+
   async remove (path) {
-    if (!this.exits(path)) throw errors.pathExistNo(path)
-    this.content(path) === 'dir'
-      ? this._db.rmdir(path)
-      : this._db.rm(path)
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
+    this.fs.content(path) === 'dir'
+      ? await this._db.rmdir(path)
+      : await this._db.rm(path)
+    this.events.emit('remove')
   }
 
-  async download (path) {
-    if (!this.exists(path)) throw errors.pathExistNo(path)
-    return this._ipfs.get(this._getHash(path))
-  }
+  async _getCid (path = '/r') {
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
 
-  async _getHash (path = '/r') {
-    if (this.content(path) === 'file') {
-      return this.read(path)
+    async function * ipfsTree (path) {
+      const emptyFile = await last(this._ipfs.add(''))
+      const fsStruct = [path, ...this.fs.tree(path)]
+        .map((p) => ({
+          path: p.slice(path.lastIndexOf('/')),
+          content: this.fs.content(p) === 'file'
+            ? this._ipfs.cat(this.fs.read(p) || emptyFile.cid)
+            : undefined
+        }))
+      yield * this._ipfs.add(fsStruct, { pin: false })
     }
 
-    const dirHash = async (path) => {
-      const dirStruct = this.ls(path)
-        .filter((p) => this.content(p) === 'file')
-        .reduce((arr, p) => [
-          ...arr,
-          {
-            path: p.slice(path.length + 1),
-            content: this._ipfs.cat(this.read(p))
-          }
-        ], [])
-      return last(this._ipfs.add(dirStruct, { wrapWithDirectory: true }))
+    try {
+      const { cid } = await last(ipfsTree.bind(this)(path))
+      return cid
+    } catch (e) {
+      console.error(e)
+      console.error(new Error('sharedfs._getCid failed'))
+      console.error('path:'); console.error(path)
     }
-
-    return dirHash(path)
   }
 }
 
