@@ -1,3 +1,5 @@
+[![npm (scoped)](https://img.shields.io/npm/v/@cypsela/sailplane-node)](https://www.npmjs.com/package/@cypsela/sailplane-node)
+
 # sailplane-node
 collaborative file system on ipfs
 
