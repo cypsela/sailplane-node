@@ -17,12 +17,15 @@ npm install @tabcat/orbit-db-fsstore
 
 # API
 *check out [./test](./test) for examples*
+
 ## SailplaneNode API
 ### .create(orbitdb, [options])
 `static` `async`
 
 **orbitdb: an instance of [OrbitDB](https://github.com/orbitdb/orbit-db)**
+
 **[options]: *{Object}*** options to be used by the sailplane instance; no options defined yet
+
 ```js
 const sailplane = await Sailplane.create(orbitdb, {})
 ```
@@ -32,7 +35,9 @@ const sailplane = await Sailplane.create(orbitdb, {})
 `async`
 
 **name: *{String}*** naming the orbitdb filesystem store
+
 **[options]: *{Object}*** options passed to [orbitdb.determineAddress](https://github.com/orbitdb/orbit-db/blob/master/API.md#orbitdbdetermineaddressname-type-options)
+
 ```js
 const address = await sailplane.determineAddress('superdrive', {})
 ```
@@ -42,7 +47,9 @@ const address = await sailplane.determineAddress('superdrive', {})
 `async`
 
 **address: *{OrbitDBAddress or String}*** address of an [FSStore](https://github.com/tabcat/orbit-db-fsstore)
+
 **[options]: *{Object}*** options passed to [orbitdb.open](https://github.com/orbitdb/orbit-db/blob/master/API.md#orbitdbopenaddress-options) and [SharedFS.create](#)
+
 ```js
 const sharedfs = await sailplane.mount(address, {})
 ```
@@ -55,10 +62,15 @@ const sharedfs = await sailplane.mount(address, {})
 ##### This method should not be directly called by users, use [sailplane.mount](#mountaddress-options) instead
 
 **fsstore**: an instance of [FSStore](https://github.com/tabcat/orbit-db-fsstore)
+
 **[options]: *{Object}*** options to be used by the sharedfs instance
+
 **[options.onStop]: *{Function}*** called and awaited before the sharedfs instance is stopped with [sharedfs.stop](). Used by [sailplane.mount](#mountaddress-options). `Default is empty function`
+
 **[options.autoStart]: *{Boolean}*** whether to await sharedfs.start before returning sharedfs instance. `Default: true`
+
 **[options.loadDb]: *{Boolean}*** whether calling sharedfs.start should load the fsstore history. `Default: true`
+
 ```js
 const sharedfs = await SharedFS.create(orbitdb, {})
 ```
@@ -77,9 +89,11 @@ await sharedfs.start()
 `async`
 
 **[options]: *{Object}*** options to be used
+
 **[options.drop]: *{Boolean}*** whether to call [.drop](https://github.com/orbitdb/orbit-db/blob/master/API.md#storedrop) on the fsstore
 
 Stops the sharedfs instance. Using the sharedfs instance after calling .stop could result in an error.
+
 ```js
 await sharedfs.stop()
 ```
@@ -89,9 +103,11 @@ await sharedfs.stop()
 `async`
 
 **path: *{String}*** a string usable as an [fsstore path](https://github.com/tabcat/orbit-db-fsstore). Every path must be a child of '/r'.
+
 **source: *{data source}*** this is handed directly to [ipfs.add](https://github.com/ipfs/js-ipfs/blob/master/docs/core-api/FILES.md#ipfsadddata-options)
 
 Upload folders and files to ipfs and add references to them in the fsstore.
+
 ```js
 await sharedfs.upload('/r', source)
 ```
@@ -105,6 +121,7 @@ await sharedfs.upload('/r', source)
 ```js
 const cid = await sharedfs.read('/r')
 ```
+
 > returns a Promise that resolves to an instance of [CID](https://github.com/multiformats/js-cid), more info about [IPFS content ids](https://docs.ipfs.io/concepts/content-addressing/)
 
 ### .remove(path)
@@ -113,31 +130,44 @@ const cid = await sharedfs.read('/r')
 **path: *{String}*** path of filesystem to remove
 
 Removes a file or folder recursively at path.
+
 ```js
 await sharedfs.remove('/r')
 ```
 > returns a Promise that resolves to undefined
 
 ### .fs.joinPath(path, name)
+
 Creates a new path by adding path and name
+
 **[documentation](https://github.com/tabcat/orbit-db-fsstore#joinpathpath-name)**
 
 ### .fs.exists(path)
+
 Returns whether path exists in filesystem
+
 **[documentation](https://github.com/tabcat/orbit-db-fsstore#existspath)**
 
 ### .fs.content(path)
+
 Returns content type at path
+
 **[documentation](https://github.com/tabcat/orbit-db-fsstore#contentpath)**
 
 ### .fs.read(path)
+
 Returns data stored path
+
 **[documentation](https://github.com/tabcat/orbit-db-fsstore#readpath)**
 
 ### .fs.tree(path)
+
 Returns all paths under path
+
 **[documentation](https://github.com/tabcat/orbit-db-fsstore#treepath)**
 
 ### .fs.ls(path)
+
 Returns all paths directly under path
+
 **[documentation](https://github.com/tabcat/orbit-db-fsstore#lspath)**
