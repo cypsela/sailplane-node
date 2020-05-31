@@ -7,8 +7,6 @@ const path = require('path')
 const OrbitDB = require('orbit-db')
 const SailplaneNode = require('../src')
 const globSource = require('ipfs-utils/src/files/glob-source')
-const first = require('it-first')
-const last = require('it-last')
 
 const {
   config,
@@ -93,15 +91,8 @@ Object.keys(testAPIs).forEach(API => {
       const path = './test/fixtures/folderWithFiles/mittens.jpg'
       await sharedfs1.upload('/r', globSource(path))
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
-      const read = await last(sharedfs1.read('/r/mittens.jpg'))
-      assert.strict.equal(read.cid.toString(), 'QmPmSxRWBs9TedaVdj7NMXpU3btHydyNwsCrLWEyyVYLDW')
-      assert.strict.equal(read.path, 'QmPmSxRWBs9TedaVdj7NMXpU3btHydyNwsCrLWEyyVYLDW')
-      assert.strict.equal(read.name, 'QmPmSxRWBs9TedaVdj7NMXpU3btHydyNwsCrLWEyyVYLDW')
-      assert.strict.equal(read.depth, 1)
-      assert.strict.equal(read.size, 16634)
-      assert.strict.equal(read.type, 'file')
-      assert.strict.equal(read.mode, 420)
-      assert.strict.equal(read.mtime, undefined)
+      const cid = await sharedfs1.read('/r/mittens.jpg')
+      assert.strict.equal(cid.toString(), 'QmPmSxRWBs9TedaVdj7NMXpU3btHydyNwsCrLWEyyVYLDW')
     })
 
     it('read a directory', async function () {
@@ -120,15 +111,8 @@ Object.keys(testAPIs).forEach(API => {
           '/r/folderWithFiles/close-up-of-cat-248280.jpg'
         ]
       )
-      const read = await first(sharedfs1.read('/r'))
-      assert.strict.equal(read.cid.toString(), 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
-      assert.strict.equal(read.path, 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
-      assert.strict.equal(read.name, 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
-      assert.strict.equal(read.depth, 1)
-      assert.strict.equal(read.size, 0)
-      assert.strict.equal(read.type, 'dir')
-      assert.strict.equal(read.mode, 493)
-      assert.strict.equal(read.mtime, undefined)
+      const cid = await sharedfs1.read('/r')
+      assert.strict.equal(cid.toString(), 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
     })
 
     it('remove a file', async function () {

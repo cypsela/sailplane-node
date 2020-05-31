@@ -39,9 +39,10 @@ class SailplaneNode {
 
   async mount (address, options = {}) {
     address = address.toString()
-    const db = await this._orbitdb.open(address, options)
+    const fsstore = await this._orbitdb.open(address, options)
+    if (fsstore.type !== FSStore.type) throw new Error(`address type doesn't match ${FSStore.type}`)
     options.onStop = () => { delete this.mounted[address] }
-    this.mounted[address] = await SharedFS.create(db, this._orbitdb[ipfsKey], options)
+    this.mounted[address] = await SharedFS.create(fsstore, this._orbitdb[ipfsKey], options)
     return this.mounted[address]
   }
 }

@@ -37,9 +37,9 @@ class SharedFS {
     this.running = null
   }
 
-  static async create (db, ipfs, options = {}) {
-    const sharedfs = new SharedFS(db, ipfs, options)
-    if (options.start !== false) await sharedfs.start()
+  static async create (fsstore, ipfs, options = {}) {
+    const sharedfs = new SharedFS(fsstore, ipfs, options)
+    if (options.autoStart !== false) await sharedfs.start()
     return sharedfs
   }
 
@@ -47,7 +47,7 @@ class SharedFS {
     if (this.running !== null) { return }
     this.events.on('replicated', this._onDbUpdate)
     this.events.on('write', this._onDbUpdate)
-    await this._db.load()
+    if (this.options.load) await this._db.load()
     this.running = true
     this.events.emit('start')
   }
@@ -110,9 +110,9 @@ class SharedFS {
     }
   }
 
-  async * read (path) {
+  async read (path) {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
-    yield * this._ipfs.get(await this._getCid(path))
+    return this._getCid(path)
   }
 
   async remove (path) {
