@@ -1,5 +1,5 @@
 # sailplane-node
-share folders and files directly
+collaborative file system on ipfs
 
 This package was built to enable collaborative file storage similar to popular consumer faced cloud storage. It uses a custom orbit-db store named [orbit-db-fsstore](https://github.com/tabcat/orbit-db-fsstore) to map **file** paths to [IPFS content ids](https://docs.ipfs.io/concepts/content-addressing/) and calculates **directory** paths from contained file content ids.
 
