@@ -17,7 +17,7 @@ class SailplaneNode {
       throw new Error('cannot find ipfs node in orbitdb instance')
     }
 
-    if (!orbitdb.constructor.getDatabaseTypes()[FSStore.type]) {
+    if (!orbitdb.constructor.databaseTypes.includes(FSStore.type)) {
       orbitdb.constructor.addDatabaseType(FSStore.type, FSStore)
     }
   }
