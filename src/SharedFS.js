@@ -11,11 +11,17 @@ const errors = {
   pathDirNo: (path) => new Error(`path '${path}' is not a directory`)
 }
 
+const defaultOptions = {
+  autoStart: true,
+  load: true,
+  onStop: function () {}
+}
+
 class SharedFS {
   constructor (db, ipfs, options = {}) {
     this._db = db
     this._ipfs = ipfs
-    this.options = options
+    this.options = { ...defaultOptions, ...options }
 
     this.address = this._db.address
     this.events = this._db.events
@@ -28,7 +34,7 @@ class SharedFS {
     this.fs.tree = this._db.tree
     this.fs.ls = this._db.ls
 
-    this._onStop = this.options.onStop || function () {}
+    this._onStop = this.options.onStop
 
     // improvement: remove uncalled, queued promises on add of new promise
     this._updateQueue = new PQueue()
@@ -39,7 +45,7 @@ class SharedFS {
 
   static async create (fsstore, ipfs, options = {}) {
     const sharedfs = new SharedFS(fsstore, ipfs, options)
-    if (options.autoStart !== false) await sharedfs.start()
+    if (sharedfs.options.autoStart) await sharedfs.start()
     return sharedfs
   }
 
