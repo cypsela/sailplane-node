@@ -12,7 +12,7 @@ This package was built to enable collaborative file storage similar to popular c
 
 ### Install
 ```
-npm install @tabcat/orbit-db-fsstore
+npm install @cypsela/sailplane-node
 ```
 
 # API
