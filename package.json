@@ -1,8 +1,10 @@
 {
   "name": "@cypsela/sailplane-node",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "collaborative file system on ipfs",
-  "files": ["/src"],
+  "files": [
+    "/src"
+  ],
   "main": "src/index.js",
   "scripts": {
     "test": "cross-env TEST=js mocha"
