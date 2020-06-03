@@ -132,13 +132,27 @@ class SharedFS {
   async _getCid (path = '/r') {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
 
+    function useCidClass (CID) {
+      return function validCid (cid) {
+        try {
+          return !!new CID(cid)
+        } catch (e) {
+          return false
+        }
+      }
+    }
+
     async function * ipfsTree (path) {
       const emptyFile = await last(this._ipfs.add(''))
+      const validCid = useCidClass(emptyFile.cid.constructor)
       const fsStruct = [path, ...this.fs.tree(path)]
         .map((p) => ({
           path: p.slice(path.lastIndexOf('/')),
           content: this.fs.content(p) === 'file'
-            ? this._ipfs.cat(this.fs.read(p) || emptyFile.cid)
+            ? this._ipfs.cat(
+              (validCid(this.fs.read(p)) && this.fs.read(p)) ||
+              emptyFile.cid
+            )
             : undefined
         }))
       yield * this._ipfs.add(fsStruct, { pin: false })
