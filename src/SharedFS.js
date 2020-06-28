@@ -38,7 +38,8 @@ class SharedFS {
 
     this._updateQueue = new PQueue({ concurrency: 1 })
     this._onDbUpdate = () =>
-      this._updateQueue.size === 0 && this._updateQueue.add(() => this._getCid())
+      this._updateQueue.size === 0 &&
+      this._updateQueue.add(() => this._getCid())
 
     this.running = null
   }
