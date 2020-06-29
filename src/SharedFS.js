@@ -41,6 +41,9 @@ class SharedFS {
       this._updateQueue.size === 0 &&
       this._updateQueue.add(() => this._getCid())
 
+    this._emptyFile = null
+    this._CID = null
+
     this.running = null
   }
 
@@ -52,6 +55,8 @@ class SharedFS {
 
   async start () {
     if (this.running !== null) { return }
+    this._emptyFile = await last(this._ipfs.add(''))
+    this._CID = this._emptyFile.cid.constructor
     this.events.on('replicated', this._onDbUpdate)
     this.events.on('write', this._onDbUpdate)
     if (this.options.load) await this._db.load()
@@ -133,33 +138,29 @@ class SharedFS {
   async _getCid (path = '/r') {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
 
-    function useCidClass (CID) {
-      return function validCid (cid) {
-        try {
-          return !!new CID(cid)
-        } catch (e) {
-          return false
-        }
+    const fileCid = (cid) => {
+      try {
+        return new this._CID(cid)
+      } catch (e) {
+        return this._emptyFile.cid
       }
     }
 
     async function * ipfsTree (path) {
-      const emptyFile = await last(this._ipfs.add(''))
-      const validCid = useCidClass(emptyFile.cid.constructor)
       const fsStruct = [path, ...this.fs.tree(path)]
         .map((p) => ({
           path: p.slice(path.lastIndexOf('/')),
           content: this.fs.content(p) === 'file'
-            ? this._ipfs.cat(
-              (validCid(this.fs.read(p)) && this.fs.read(p)) ||
-              emptyFile.cid
-            )
+            ? this._ipfs.cat(fileCid(this.fs.read(p)))
             : undefined
         }))
       yield * this._ipfs.add(fsStruct, { pin: false })
     }
 
     try {
+      if (this.fs.content(path) === 'file') {
+        return fileCid(this.fs.read(path))
+      }
       const { cid } = await last(ipfsTree.bind(this)(path))
       return cid
     } catch (e) {
