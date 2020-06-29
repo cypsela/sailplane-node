@@ -7,6 +7,7 @@ const path = require('path')
 const OrbitDB = require('orbit-db')
 const SailplaneNode = require('../src')
 const globSource = require('ipfs-utils/src/files/glob-source')
+const last = require('it-last')
 
 const {
   config,
@@ -85,6 +86,52 @@ Object.keys(testAPIs).forEach(API => {
         ]
       )
       assert.strict.equal(eventCount, 1)
+    })
+
+    it('make a directory', async function () {
+      let eventCount = 0
+      sharedfs1.events.on('mkdir', () => eventCount++)
+      await sharedfs1.mkdir('/r', 'dirname')
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        [
+          '/r/dirname'
+        ]
+      )
+      assert.strict.equal(eventCount, 1)
+    })
+
+    it('make a file', async function () {
+      let eventCount = 0
+      sharedfs1.events.on('mkfile', () => eventCount++)
+      await sharedfs1.mkfile('/r', 'filename')
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        [
+          '/r/filename'
+        ]
+      )
+      assert.strict.equal(eventCount, 1)
+    })
+
+    it('write to a file', async function () {
+      let mkfileCount = 0
+      let writeCount = 0
+      sharedfs1.events.on('mkfile', () => mkfileCount++)
+      sharedfs1.events.on('write', () => writeCount++)
+      await sharedfs1.mkfile('/r', 'filename')
+      const path = sharedfs1.fs.joinPath('/r', 'filename')
+      const file = await last(sharedfs1._ipfs.add('data', { pin: false }))
+      await sharedfs1.write(path, file.cid)
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        [
+          '/r/filename'
+        ]
+      )
+      assert.strict.equal(sharedfs1.fs.read(path), file.cid.toString())
+      assert.strict.equal(mkfileCount, 1)
+      assert.strict.equal(writeCount, 1)
     })
 
     it('read a file', async function () {
