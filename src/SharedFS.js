@@ -17,6 +17,14 @@ const defaultOptions = {
   onStop: function () {}
 }
 
+const validCid = function (CID, cid) {
+  try {
+    return !!new CID(cid)
+  } catch (e) {
+    return false
+  }
+}
+
 class SharedFS {
   constructor (db, ipfs, options = {}) {
     this._db = db
@@ -121,6 +129,32 @@ class SharedFS {
       console.error('source:'); console.error(source)
       throw e
     }
+  }
+
+  async mkdir (path, name) {
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
+    if (!this.fs.exists(this.fs.joinPath(path, name))) {
+      throw errors.pathExistYes(this.fs.joinPath(path, name))
+    }
+    await this._db.mkdir(path, name)
+    this.events.emit('mkdir')
+  }
+
+  async mkfile (path, name) {
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
+    if (!this.fs.exists(this.fs.joinPath(path, name))) {
+      throw errors.pathExistYes(this.fs.joinPath(path, name))
+    }
+    await this._db.mk(path, name)
+    this.events.emit('mkfile')
+  }
+
+  async mutate (path, cid) {
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
+    if (!this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
+    if (!validCid(this._CID, cid)) throw new Error('invalid cid')
+    await this._db.write(path, cid.toString())
+    this.events.emit('mutate')
   }
 
   async read (path) {
