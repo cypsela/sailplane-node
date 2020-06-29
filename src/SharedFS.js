@@ -57,9 +57,10 @@ class SharedFS {
     if (this.running !== null) { return }
     this._emptyFile = await last(this._ipfs.add(''))
     this._CID = this._emptyFile.cid.constructor
+    if (this.options.load) await this._db.load()
+    this._onDbUpdate()
     this.events.on('replicated', this._onDbUpdate)
     this.events.on('write', this._onDbUpdate)
-    if (this.options.load) await this._db.load()
     this.running = true
     this.events.emit('start')
   }
