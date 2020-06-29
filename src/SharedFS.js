@@ -72,7 +72,7 @@ class SharedFS {
     this.events.on('upload', this._onDbUpdate)
     this.events.on('mkdir', this._onDbUpdate)
     this.events.on('mkfile', this._onDbUpdate)
-    this.events.on('mutate', this._onDbUpdate)
+    this.events.on('write', this._onDbUpdate)
     this.events.on('remove', this._onDbUpdate)
     this.running = true
     this.events.emit('start')
@@ -85,7 +85,7 @@ class SharedFS {
     this.events.removeListener('upload', this._onDbUpdate)
     this.events.removeListener('mkdir', this._onDbUpdate)
     this.events.removeListener('mkfile', this._onDbUpdate)
-    this.events.removeListener('mutate', this._onDbUpdate)
+    this.events.removeListener('write', this._onDbUpdate)
     this.events.removeListener('remove', this._onDbUpdate)
     await this._updateQueue.onIdle()
     drop ? await this._db.drop() : await this._db.close()
@@ -158,12 +158,12 @@ class SharedFS {
     this.events.emit('mkfile')
   }
 
-  async mutate (path, cid) {
+  async write (path, cid) {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     if (!this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
     if (!validCid(this._CID, cid)) throw new Error('invalid cid')
     await this._db.write(path, cid.toString())
-    this.events.emit('mutate')
+    this.events.emit('write')
   }
 
   async read (path) {
