@@ -1,6 +1,7 @@
 
 'use strict'
 
+const EventEmitter = require('events').EventEmitter
 const { default: PQueue } = require('p-queue')
 const all = require('it-all')
 const last = require('it-last')
@@ -30,9 +31,9 @@ class SharedFS {
     this._db = db
     this._ipfs = ipfs
     this.options = { ...defaultOptions, ...options }
+    this.events = new EventEmitter()
 
     this.address = this._db.address
-    this.events = this._db.events
 
     this.fs = {}
     this.fs.joinPath = this._db.joinPath
@@ -67,8 +68,12 @@ class SharedFS {
     this._CID = this._emptyFile.cid.constructor
     if (this.options.load) await this._db.load()
     this._onDbUpdate()
-    this.events.on('replicated', this._onDbUpdate)
-    this.events.on('write', this._onDbUpdate)
+    this._db.events.on('replicated', this._onDbUpdate)
+    this.events.on('upload', this._onDbUpdate)
+    this.events.on('mkdir', this._onDbUpdate)
+    this.events.on('mkfile', this._onDbUpdate)
+    this.events.on('mutate', this._onDbUpdate)
+    this.events.on('remove', this._onDbUpdate)
     this.running = true
     this.events.emit('start')
   }
@@ -76,8 +81,12 @@ class SharedFS {
   async stop ({ drop } = {}) {
     if (this.running !== true) { return }
     await this._onStop()
-    this.events.removeListener('replicated', this._onDbUpdate)
-    this.events.removeListener('write', this._onDbUpdate)
+    this._db.events.removeListener('replicated', this._onDbUpdate)
+    this.events.removeListener('upload', this._onDbUpdate)
+    this.events.removeListener('mkdir', this._onDbUpdate)
+    this.events.removeListener('mkfile', this._onDbUpdate)
+    this.events.removeListener('mutate', this._onDbUpdate)
+    this.events.removeListener('remove', this._onDbUpdate)
     await this._updateQueue.onIdle()
     drop ? await this._db.drop() : await this._db.close()
     this.running = false
