@@ -47,10 +47,11 @@ class SharedFS {
     this._onStop = this.options.onStop
 
     this._updateQueue = new PQueue({ concurrency: 1 })
-    this._onDbUpdate = () =>
+    this._onDbUpdate = () => {
+      this.events.emit('updated')
       this._updateQueue.size === 0 &&
       this._updateQueue.add(() => this._getCid())
-
+    }
     this._emptyFile = null
     this._CID = null
 
