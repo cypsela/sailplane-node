@@ -60,17 +60,24 @@ Object.keys(testAPIs).forEach(API => {
 
     it('upload a file', async function () {
       const path = './test/fixtures/folderWithFiles/mittens.jpg'
-      let eventCount = 0
-      sharedfs1.events.on('upload', () => eventCount++)
+      let updatedCount = 0
+      let uploadCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('upload', () => uploadCount++)
+
       await sharedfs1.upload('/r', globSource(path))
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
-      assert.strict.equal(eventCount, 1)
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(uploadCount, 1)
     })
 
     it('upload a directory', async function () {
       const path = './test/fixtures/folderWithFiles'
-      let eventCount = 0
-      sharedfs1.events.on('upload', () => eventCount++)
+      let updatedCount = 0
+      let uploadCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('upload', () => uploadCount++)
+
       await sharedfs1.upload('/r', globSource(path, { recursive: true }))
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -85,12 +92,16 @@ Object.keys(testAPIs).forEach(API => {
           '/r/folderWithFiles/close-up-of-cat-248280.jpg'
         ]
       )
-      assert.strict.equal(eventCount, 1)
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(uploadCount, 1)
     })
 
     it('make a directory', async function () {
-      let eventCount = 0
-      sharedfs1.events.on('mkdir', () => eventCount++)
+      let updatedCount = 0
+      let mkdirCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('mkdir', () => mkdirCount++)
+
       await sharedfs1.mkdir('/r', 'dirname')
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -98,12 +109,16 @@ Object.keys(testAPIs).forEach(API => {
           '/r/dirname'
         ]
       )
-      assert.strict.equal(eventCount, 1)
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(mkdirCount, 1)
     })
 
     it('make a file', async function () {
-      let eventCount = 0
-      sharedfs1.events.on('mkfile', () => eventCount++)
+      let updatedCount = 0
+      let mkfileCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('mkfile', () => mkfileCount++)
+
       await sharedfs1.mkfile('/r', 'filename')
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -111,17 +126,26 @@ Object.keys(testAPIs).forEach(API => {
           '/r/filename'
         ]
       )
-      assert.strict.equal(eventCount, 1)
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(mkfileCount, 1)
     })
 
     it('write to a file', async function () {
+      let updatedCount = 0
       let mkfileCount = 0
       let writeCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
       sharedfs1.events.on('mkfile', () => mkfileCount++)
       sharedfs1.events.on('write', () => writeCount++)
+
       await sharedfs1.mkfile('/r', 'filename')
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(mkfileCount, 1)
+      assert.strict.equal(writeCount, 0)
+
       const path = sharedfs1.fs.joinPath('/r', 'filename')
       const file = await last(sharedfs1._ipfs.add('data', { pin: false }))
+
       await sharedfs1.write(path, file.cid)
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -129,14 +153,23 @@ Object.keys(testAPIs).forEach(API => {
           '/r/filename'
         ]
       )
-      assert.strict.equal(sharedfs1.fs.read(path), file.cid.toString())
+      assert.strict.equal(updatedCount, 2)
       assert.strict.equal(mkfileCount, 1)
       assert.strict.equal(writeCount, 1)
+      assert.strict.equal(sharedfs1.fs.read(path), file.cid.toString())
     })
 
     it('read a file', async function () {
       const path = './test/fixtures/folderWithFiles/mittens.jpg'
+      let updatedCount = 0
+      let uploadCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('upload', () => uploadCount++)
+
       await sharedfs1.upload('/r', globSource(path))
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(uploadCount, 1)
+
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
       const cid = await sharedfs1.read('/r/mittens.jpg')
       assert.strict.equal(cid.toString(), 'QmPmSxRWBs9TedaVdj7NMXpU3btHydyNwsCrLWEyyVYLDW')
@@ -144,6 +177,11 @@ Object.keys(testAPIs).forEach(API => {
 
     it('read a directory', async function () {
       const path = './test/fixtures/folderWithFiles'
+      let updatedCount = 0
+      let uploadCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('upload', () => uploadCount++)
+
       await sharedfs1.upload('/r', globSource(path, { recursive: true }))
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -158,25 +196,43 @@ Object.keys(testAPIs).forEach(API => {
           '/r/folderWithFiles/close-up-of-cat-248280.jpg'
         ]
       )
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(uploadCount, 1)
       const cid = await sharedfs1.read('/r')
       assert.strict.equal(cid.toString(), 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
     })
 
     it('remove a file', async function () {
       const path = './test/fixtures/folderWithFiles/mittens.jpg'
-      let eventCount = 0
-      sharedfs1.events.on('upload', () => eventCount++)
+      let updatedCount = 0
+      let uploadCount = 0
+      let removeCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('upload', () => uploadCount++)
+      sharedfs1.events.on('remove', () => removeCount++)
+
       await sharedfs1.upload('/r', globSource(path))
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(removeCount, 0)
+
       await sharedfs1.remove('/r/mittens.jpg')
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), [])
-      assert.strict.equal(eventCount, 1)
+      assert.strict.equal(updatedCount, 2)
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(removeCount, 1)
     })
 
     it('remove a directory', async function () {
       const path = './test/fixtures/folderWithFiles'
-      let eventCount = 0
-      sharedfs1.events.on('upload', () => eventCount++)
+      let updatedCount = 0
+      let uploadCount = 0
+      let removeCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
+      sharedfs1.events.on('upload', () => uploadCount++)
+      sharedfs1.events.on('remove', () => removeCount++)
+
       await sharedfs1.upload('/r', globSource(path, { recursive: true }))
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -191,36 +247,51 @@ Object.keys(testAPIs).forEach(API => {
           '/r/folderWithFiles/close-up-of-cat-248280.jpg'
         ]
       )
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(removeCount, 0)
+
       await sharedfs1.remove('/r/folderWithFiles')
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), [])
-      assert.strict.equal(eventCount, 1)
+      assert.strict.equal(updatedCount, 2)
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(removeCount, 1)
     })
 
     it('move a file', async function () {
       const path = './test/fixtures/folderWithFiles/mittens.jpg'
+      let updatedCount = 0
       let uploadCount = 0
       let moveCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
       sharedfs1.events.on('upload', () => uploadCount++)
       sharedfs1.events.on('move', () => moveCount++)
+
       await sharedfs1.upload('/r', globSource(path))
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
+      assert.strict.equal(updatedCount, 1)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(moveCount, 0)
+
       await sharedfs1.move('/r/mittens.jpg', '/r', 'file1')
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
         ['/r/file1']
       )
+      assert.strict.equal(updatedCount, 2)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(moveCount, 1)
     })
 
     it('move a directory', async function () {
       const path = './test/fixtures/folderWithFiles'
+      let updatedCount = 0
       let uploadCount = 0
       let moveCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
       sharedfs1.events.on('upload', () => uploadCount++)
       sharedfs1.events.on('move', () => moveCount++)
+
       await sharedfs1.upload('/r', globSource(path, { recursive: true }))
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -235,8 +306,10 @@ Object.keys(testAPIs).forEach(API => {
           '/r/folderWithFiles/close-up-of-cat-248280.jpg'
         ]
       )
+      assert.strict.equal(updatedCount, 1)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(moveCount, 0)
+
       await sharedfs1.move('/r/folderWithFiles', '/r', 'dir1')
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -251,35 +324,45 @@ Object.keys(testAPIs).forEach(API => {
           '/r/dir1/close-up-of-cat-248280.jpg'
         ]
       )
+      assert.strict.equal(updatedCount, 2)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(moveCount, 1)
     })
 
     it('copy a file', async function () {
       const path = './test/fixtures/folderWithFiles/mittens.jpg'
+      let updatedCount = 0
       let uploadCount = 0
       let copyCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
       sharedfs1.events.on('upload', () => uploadCount++)
       sharedfs1.events.on('copy', () => copyCount++)
+
       await sharedfs1.upload('/r', globSource(path))
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
+      assert.strict.equal(updatedCount, 1)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(copyCount, 0)
+
       await sharedfs1.copy('/r/mittens.jpg', '/r', 'file1')
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
         ['/r/mittens.jpg', '/r/file1']
       )
+      assert.strict.equal(updatedCount, 2)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(copyCount, 1)
     })
 
     it('copy a directory', async function () {
       const path = './test/fixtures/folderWithFiles'
+      let updatedCount = 0
       let uploadCount = 0
       let copyCount = 0
+      sharedfs1.events.on('updated', () => updatedCount++)
       sharedfs1.events.on('upload', () => uploadCount++)
       sharedfs1.events.on('copy', () => copyCount++)
+
       await sharedfs1.upload('/r', globSource(path, { recursive: true }))
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -294,8 +377,10 @@ Object.keys(testAPIs).forEach(API => {
           '/r/folderWithFiles/close-up-of-cat-248280.jpg'
         ]
       )
+      assert.strict.equal(updatedCount, 1)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(copyCount, 0)
+
       await sharedfs1.copy('/r/folderWithFiles', '/r', 'dir1')
       assert.strict.deepEqual(
         sharedfs1.fs.tree('/r'),
@@ -318,6 +403,7 @@ Object.keys(testAPIs).forEach(API => {
           '/r/dir1/close-up-of-cat-248280.jpg'
         ]
       )
+      assert.strict.equal(updatedCount, 2)
       assert.strict.equal(uploadCount, 1)
       assert.strict.equal(copyCount, 1)
     })
