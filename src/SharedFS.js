@@ -19,6 +19,8 @@ const defaultOptions = {
   onStop: function () {}
 }
 
+const ipfsAddConfig = { pin: false }
+
 const validCid = function (CID, cid) {
   try {
     return !!new CID(cid)
@@ -125,7 +127,7 @@ class SharedFS {
     }
 
     try {
-      const ipfsUpload = await all(this._ipfs.add(source, { pin: false }))
+      const ipfsUpload = await all(this._ipfs.add(source, ipfsAddConfig))
       await ipfsUpload
         .reverse() // start from root uploaded dir
         .reduce(
@@ -200,7 +202,7 @@ class SharedFS {
             ? this._ipfs.cat(fileCid(this.fs.read(p)))
             : undefined
         }))
-      yield * this._ipfs.add(fsStruct, { pin: false })
+      yield * this._ipfs.add(fsStruct, ipfsAddConfig)
     }
 
     try {
