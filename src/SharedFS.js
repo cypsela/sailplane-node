@@ -78,6 +78,8 @@ class SharedFS {
     this.events.on('mkfile', this._onDbUpdate)
     this.events.on('write', this._onDbUpdate)
     this.events.on('remove', this._onDbUpdate)
+    this.events.on('move', this._onDbUpdate)
+    this.events.on('copy', this._onDbUpdate)
     this.running = true
     this.events.emit('start')
   }
@@ -91,6 +93,8 @@ class SharedFS {
     this.events.removeListener('mkfile', this._onDbUpdate)
     this.events.removeListener('write', this._onDbUpdate)
     this.events.removeListener('remove', this._onDbUpdate)
+    this.events.removeListener('move', this._onDbUpdate)
+    this.events.removeListener('copy', this._onDbUpdate)
     await this._updateQueue.onIdle()
     drop ? await this._db.drop() : await this._db.close()
     this.running = false
