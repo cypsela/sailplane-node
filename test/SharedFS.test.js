@@ -195,5 +195,131 @@ Object.keys(testAPIs).forEach(API => {
       assert.strict.deepEqual(sharedfs1.fs.tree('/r'), [])
       assert.strict.equal(eventCount, 1)
     })
+
+    it('move a file', async function () {
+      const path = './test/fixtures/folderWithFiles/mittens.jpg'
+      let uploadCount = 0
+      let moveCount = 0
+      sharedfs1.events.on('upload', () => uploadCount++)
+      sharedfs1.events.on('move', () => moveCount++)
+      await sharedfs1.upload('/r', globSource(path))
+      assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(moveCount, 0)
+      await sharedfs1.move('/r/mittens.jpg', '/r', 'file1')
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        ['/r/file1']
+      )
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(moveCount, 1)
+    })
+
+    it('move a directory', async function () {
+      const path = './test/fixtures/folderWithFiles'
+      let uploadCount = 0
+      let moveCount = 0
+      sharedfs1.events.on('upload', () => uploadCount++)
+      sharedfs1.events.on('move', () => moveCount++)
+      await sharedfs1.upload('/r', globSource(path, { recursive: true }))
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        [
+          '/r/folderWithFiles',
+          '/r/folderWithFiles/moreFiles',
+          '/r/folderWithFiles/moreFiles/hamlet.txt',
+          '/r/folderWithFiles/moreFiles/DnTFT3BWwAEslk6.jpg',
+          '/r/folderWithFiles/mittens.jpg',
+          '/r/folderWithFiles/hello.txt',
+          '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
+          '/r/folderWithFiles/close-up-of-cat-248280.jpg'
+        ]
+      )
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(moveCount, 0)
+      await sharedfs1.move('/r/folderWithFiles', '/r', 'dir1')
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        [
+          '/r/dir1',
+          '/r/dir1/moreFiles',
+          '/r/dir1/moreFiles/hamlet.txt',
+          '/r/dir1/moreFiles/DnTFT3BWwAEslk6.jpg',
+          '/r/dir1/mittens.jpg',
+          '/r/dir1/hello.txt',
+          '/r/dir1/grey-fur-kitten-127028.jpg',
+          '/r/dir1/close-up-of-cat-248280.jpg'
+        ]
+      )
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(moveCount, 1)
+    })
+
+    it('copy a file', async function () {
+      const path = './test/fixtures/folderWithFiles/mittens.jpg'
+      let uploadCount = 0
+      let copyCount = 0
+      sharedfs1.events.on('upload', () => uploadCount++)
+      sharedfs1.events.on('copy', () => copyCount++)
+      await sharedfs1.upload('/r', globSource(path))
+      assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(copyCount, 0)
+      await sharedfs1.copy('/r/mittens.jpg', '/r', 'file1')
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        ['/r/mittens.jpg', '/r/file1']
+      )
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(copyCount, 1)
+    })
+
+    it('copy a directory', async function () {
+      const path = './test/fixtures/folderWithFiles'
+      let uploadCount = 0
+      let copyCount = 0
+      sharedfs1.events.on('upload', () => uploadCount++)
+      sharedfs1.events.on('copy', () => copyCount++)
+      await sharedfs1.upload('/r', globSource(path, { recursive: true }))
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        [
+          '/r/folderWithFiles',
+          '/r/folderWithFiles/moreFiles',
+          '/r/folderWithFiles/moreFiles/hamlet.txt',
+          '/r/folderWithFiles/moreFiles/DnTFT3BWwAEslk6.jpg',
+          '/r/folderWithFiles/mittens.jpg',
+          '/r/folderWithFiles/hello.txt',
+          '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
+          '/r/folderWithFiles/close-up-of-cat-248280.jpg'
+        ]
+      )
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(copyCount, 0)
+      await sharedfs1.copy('/r/folderWithFiles', '/r', 'dir1')
+      assert.strict.deepEqual(
+        sharedfs1.fs.tree('/r'),
+        [
+          '/r/folderWithFiles',
+          '/r/folderWithFiles/moreFiles',
+          '/r/folderWithFiles/moreFiles/hamlet.txt',
+          '/r/folderWithFiles/moreFiles/DnTFT3BWwAEslk6.jpg',
+          '/r/folderWithFiles/mittens.jpg',
+          '/r/folderWithFiles/hello.txt',
+          '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
+          '/r/folderWithFiles/close-up-of-cat-248280.jpg',
+          '/r/dir1',
+          '/r/dir1/moreFiles',
+          '/r/dir1/moreFiles/hamlet.txt',
+          '/r/dir1/moreFiles/DnTFT3BWwAEslk6.jpg',
+          '/r/dir1/mittens.jpg',
+          '/r/dir1/hello.txt',
+          '/r/dir1/grey-fur-kitten-127028.jpg',
+          '/r/dir1/close-up-of-cat-248280.jpg'
+        ]
+      )
+      assert.strict.equal(uploadCount, 1)
+      assert.strict.equal(copyCount, 1)
+    })
   })
 })

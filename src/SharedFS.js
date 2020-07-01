@@ -183,6 +183,22 @@ class SharedFS {
     this.events.emit('remove')
   }
 
+  async move (path, dest, name) {
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
+    this.fs.content(path) === 'dir'
+      ? await this._db.mvdir(path, dest, name)
+      : await this._db.mv(path, dest, name)
+    this.events.emit('move')
+  }
+
+  async copy (path, dest, name) {
+    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
+    this.fs.content(path) === 'dir'
+      ? await this._db.cpdir(path, dest, name)
+      : await this._db.cp(path, dest, name)
+    this.events.emit('copy')
+  }
+
   async _getCid (path = '/r') {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
 
