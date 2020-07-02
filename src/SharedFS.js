@@ -5,6 +5,7 @@ const EventEmitter = require('events').EventEmitter
 const { default: PQueue } = require('p-queue')
 const all = require('it-all')
 const last = require('it-last')
+const { secondLast } = require('./util')
 
 const errors = {
   pathExistNo: (path) => new Error(`path '${path}' does not exist`),
@@ -19,7 +20,7 @@ const defaultOptions = {
   onStop: function () {}
 }
 
-const ipfsAddConfig = { pin: false }
+const ipfsAddConfig = { pin: false, wrapWithDirectory: true }
 
 const validCid = function (CID, cid) {
   try {
@@ -229,7 +230,7 @@ class SharedFS {
       if (this.fs.content(path) === 'file') {
         return fileCid(this.fs.read(path))
       }
-      const { cid } = await last(ipfsTree.bind(this)(path))
+      const { cid } = await secondLast(ipfsTree.bind(this)(path))
       return cid
     } catch (e) {
       console.error(e)
