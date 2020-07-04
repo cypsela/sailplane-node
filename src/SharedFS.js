@@ -108,37 +108,36 @@ class SharedFS {
     const prefix = (path) => path.slice(0, Math.max(path.lastIndexOf('/'), 0))
     const name = (path) => path.slice(path.lastIndexOf('/') + 1)
 
-    async function addToStore (content) {
-      // parent(content.path) can be an empty string or a path
-      const fsPath = `${path}${content.path && `/${content.path}`}`
-
-      // handle dir
-      if (content.mode === 493) {
-        if (!this.fs.exists(fsPath)) {
-          await this._db.mkdir(prefix(fsPath), name(fsPath))
-        }
-      }
-
-      // handle file
-      if (content.mode === 420) {
-        if (!this.fs.exists(fsPath)) {
-          await this._db.mk(prefix(fsPath), name(fsPath))
-        }
-        await this._db.write(
-          this.fs.joinPath(prefix(fsPath), name(fsPath)),
-          content.cid.toString()
-        )
-      }
-    }
-
     try {
       const ipfsUpload = await all(this._ipfs.add(source, ipfsAddConfig))
-      await ipfsUpload
-        .reverse() // start from root uploaded dir
-        .reduce(
-          async (a, c) => { await a; return addToStore.bind(this)(c) },
-          Promise.resolve()
-        )
+      const batch = this._db.batch()
+
+      for (const content of ipfsUpload.slice().reverse()) {
+        // parent(content.path) can be an empty string or a path
+        const fsPath = `${path}${content.path && `/${content.path}`}`
+
+        // handle dir
+        if (content.mode === 493) {
+          if (!this.fs.exists(fsPath)) {
+            batch.mkdir(prefix(fsPath), name(fsPath))
+          }
+        }
+
+        // handle file
+        if (content.mode === 420) {
+          if (!this.fs.exists(fsPath)) {
+            batch.mk(prefix(fsPath), name(fsPath))
+          }
+          if (this.fs.read(fsPath) !== content.cid.toString()) {
+            batch.write(
+              this.fs.joinPath(prefix(fsPath), name(fsPath)),
+              content.cid.toString()
+            )
+          }
+        }
+      }
+
+      await batch.execute()
       this.events.emit('upload')
     } catch (e) {
       console.error(e)
