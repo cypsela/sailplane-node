@@ -9,9 +9,7 @@ const { secondLast } = require('./util')
 
 const errors = {
   pathExistNo: (path) => new Error(`path '${path}' does not exist`),
-  pathExistYes: (path) => new Error(`path '${path}' already exists`),
-  pathDirNo: (path) => new Error(`path '${path}' is not a directory`),
-  pathFileNo: (path) => new Error(`path '${path}' is not a file`)
+  pathDirNo: (path) => new Error(`path '${path}' is not a directory`)
 }
 
 const defaultOptions = {
@@ -149,33 +147,22 @@ class SharedFS {
   }
 
   async mkdir (path, name) {
-    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
-    if (this.fs.exists(this.fs.joinPath(path, name))) {
-      throw errors.pathExistYes(this.fs.joinPath(path, name))
-    }
     await this._db.mkdir(path, name)
     this.events.emit('mkdir')
   }
 
   async mkfile (path, name) {
-    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
-    if (this.fs.exists(this.fs.joinPath(path, name))) {
-      throw errors.pathExistYes(this.fs.joinPath(path, name))
-    }
     await this._db.mk(path, name)
     this.events.emit('mkfile')
   }
 
   async write (path, cid) {
-    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
-    if (this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
     if (!validCid(this._CID, cid)) throw new Error('invalid cid')
     await this._db.write(path, cid.toString())
     this.events.emit('write')
   }
 
   async read (path) {
-    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     return this._getCid(path)
   }
 
