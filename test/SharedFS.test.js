@@ -202,6 +202,10 @@ Object.keys(testAPIs).forEach(API => {
       assert.strict.equal(cid.toString(), 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
     })
 
+    it('read a non existing path throws', async function () {
+      assert.rejects(() => sharedfs1.read('/nonExist'))
+    })
+
     it('remove a file', async function () {
       const path = './test/fixtures/folderWithFiles/mittens.jpg'
       let updatedCount = 0
