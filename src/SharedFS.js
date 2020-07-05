@@ -107,7 +107,7 @@ class SharedFS {
     const name = (path) => path.slice(path.lastIndexOf('/') + 1)
 
     try {
-      const ipfsUpload = await all(this._ipfs.add(source, ipfsAddConfig, options))
+      const ipfsUpload = await all(this._ipfs.add(source, {...ipfsAddConfig, ...options}))
       const batch = this._db.batch()
 
       for (const content of ipfsUpload.slice().reverse()) {
