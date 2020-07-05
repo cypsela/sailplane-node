@@ -47,6 +47,11 @@ class SharedFS {
 
     this._onStop = this.options.onStop
 
+    const statsFirst = (...p) => [...p.slice(-2) , ...p.slice(0, -2)]
+    this._dbProgress = {
+      load: (...p) => this.events.emit('db.load.progress', ...statsFirst(p)),
+      replicate: (...p) => this.events.emit('db.replicate.progress', ...statsFirst(p))
+    }
     this._updateQueue = new PQueue({ concurrency: 1 })
     this._onDbUpdate = () => {
       this.events.emit('updated')
@@ -67,9 +72,11 @@ class SharedFS {
 
   async start () {
     if (this.running !== null) { return }
+    this._db.events.on('load.progress', this._dbProgress.load)
+    this._db.events.on('replicate.progress', this._dbProgress.replicate)
+    if (this.options.load) await this._db.load()
     this._emptyFile = await last(this._ipfs.add(''))
     this._CID = this._emptyFile.cid.constructor
-    if (this.options.load) await this._db.load()
     this._onDbUpdate()
     this._db.events.on('replicated', this._onDbUpdate)
     this.events.on('upload', this._onDbUpdate)
@@ -86,6 +93,8 @@ class SharedFS {
   async stop ({ drop } = {}) {
     if (this.running !== true) { return }
     await this._onStop()
+    this._db.events.removeListener('load.progress', this._dbProgress.load)
+    this._db.events.removeListener('replicate.progress', this._dbProgress.replicate)
     this._db.events.removeListener('replicated', this._onDbUpdate)
     this.events.removeListener('upload', this._onDbUpdate)
     this.events.removeListener('mkdir', this._onDbUpdate)
