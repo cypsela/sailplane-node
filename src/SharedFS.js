@@ -47,7 +47,7 @@ class SharedFS {
 
     this._onStop = this.options.onStop
 
-    const statsFirst = (...p) => [...p.slice(-2) , ...p.slice(0, -2)]
+    const statsFirst = (p) => [...p.slice(-2) , ...p.slice(0, -2)]
     this._dbProgress = {
       load: (...p) => this.events.emit('db.load.progress', ...statsFirst(p)),
       replicate: (...p) => this.events.emit('db.replicate.progress', ...statsFirst(p))
