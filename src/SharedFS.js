@@ -6,7 +6,11 @@ const { default: PQueue } = require('p-queue')
 const all = require('it-all')
 const last = require('it-last')
 const { secondLast } = require('./util')
-const { FS: { errors } } = require('@tabcat/orbit-db-fsstore')
+let { FS: { errors } } = require('@tabcat/orbit-db-fsstore')
+
+const errors = {
+  notStarted: () => new Error('sharedfs was started')
+}
 
 const defaultOptions = {
   autoStart: true,
@@ -106,6 +110,7 @@ class SharedFS {
   }
 
   async upload (path, source, options = {}) {
+    if (!this.running) throw errors.notStarted()
     if (this.fs.content(path) !== 'dir') throw errors.pathDirNo(path)
 
     const prefix = (path) => path.slice(0, Math.max(path.lastIndexOf('/'), 0))
@@ -154,26 +159,31 @@ class SharedFS {
   }
 
   async mkdir (path, name) {
+    if (!this.running) throw errors.notStarted()
     await this._db.mkdir(path, name)
     this.events.emit('mkdir')
   }
 
   async mkfile (path, name) {
+    if (!this.running) throw errors.notStarted()
     await this._db.mk(path, name)
     this.events.emit('mkfile')
   }
 
   async write (path, cid) {
+    if (!this.running) throw errors.notStarted()
     if (!validCid(this._CID, cid)) throw new Error('invalid cid')
     await this._db.write(path, cid.toString())
     this.events.emit('write')
   }
 
   async read (path) {
+    if (!this.running) throw errors.notStarted()
     return this._getCid(path)
   }
 
   async remove (path) {
+    if (!this.running) throw errors.notStarted()
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     this.fs.content(path) === 'dir'
       ? await this._db.rmdir(path)
@@ -182,6 +192,7 @@ class SharedFS {
   }
 
   async move (path, dest, name) {
+    if (!this.running) throw errors.notStarted()
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     this.fs.content(path) === 'dir'
       ? await this._db.mvdir(path, dest, name)
@@ -190,6 +201,7 @@ class SharedFS {
   }
 
   async copy (path, dest, name) {
+    if (!this.running) throw errors.notStarted()
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     this.fs.content(path) === 'dir'
       ? await this._db.cpdir(path, dest, name)
@@ -198,6 +210,7 @@ class SharedFS {
   }
 
   async _getCid (path = '/r') {
+    if (!this.running) throw errors.notStarted()
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
 
     const fileCid = (cid) => {
