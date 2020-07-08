@@ -39,6 +39,7 @@ class SharedFS {
 
     this.fs = {}
     this.fs.joinPath = this._db.joinPath
+    this.fs.pathName = this._db.pathName
     this.fs.exists = this._db.exists
     this.fs.content = this._db.content
     this.fs.read = this._db.read
