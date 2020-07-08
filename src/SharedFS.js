@@ -6,11 +6,7 @@ const { default: PQueue } = require('p-queue')
 const all = require('it-all')
 const last = require('it-last')
 const { secondLast } = require('./util')
-
-const errors = {
-  pathExistNo: (path) => new Error(`path '${path}' does not exist`),
-  pathDirNo: (path) => new Error(`path '${path}' is not a directory`)
-}
+const { FS: { errors } } = require('@tabcat/orbit-db-fsstore')
 
 const defaultOptions = {
   autoStart: true,
