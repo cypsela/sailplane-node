@@ -1,6 +1,6 @@
 {
   "name": "@cypsela/sailplane-node",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "collaborative file system on ipfs",
   "files": [
     "/src"
