@@ -8,8 +8,9 @@ const last = require('it-last')
 const { secondLast } = require('./util')
 let { FS: { errors } } = require('@tabcat/orbit-db-fsstore')
 
-const errors = {
-  notStarted: () => new Error('sharedfs was started')
+errors = {
+  ...errors,
+  notStarted: () => new Error('sharedfs was not started')
 }
 
 const defaultOptions = {
@@ -78,7 +79,6 @@ class SharedFS {
     if (this.options.load) await this._db.load()
     this._emptyFile = await last(this._ipfs.add(''))
     this._CID = this._emptyFile.cid.constructor
-    this._onDbUpdate()
     this._db.events.on('replicated', this._onDbUpdate)
     this.events.on('upload', this._onDbUpdate)
     this.events.on('mkdir', this._onDbUpdate)
@@ -88,6 +88,7 @@ class SharedFS {
     this.events.on('move', this._onDbUpdate)
     this.events.on('copy', this._onDbUpdate)
     this.running = true
+    this._onDbUpdate()
     this.events.emit('start')
   }
 
