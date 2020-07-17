@@ -451,6 +451,10 @@ Object.keys(testAPIs).forEach(API => {
         await sharedfs1.start()
         assert.strict.equal(loadProgressCount, expectedCount)
       })
+
+      it('exposes db access', async function () {
+        assert.strict.equal(sharedfs1.access, sharedfs1._db.access)
+      })
     })
   })
 })

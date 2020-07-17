@@ -29,6 +29,7 @@ class SharedFS {
     this.events = new EventEmitter()
 
     this.address = this._db.address
+    this.access = this._db.access
 
     this.fs = {}
     this.fs.root = this._db.root
