@@ -2,14 +2,16 @@
 'use strict'
 
 const EventEmitter = require('events').EventEmitter
+const Buffer = require('safe-buffer').Buffer
 const { default: PQueue } = require('p-queue')
 const all = require('it-all')
 const last = require('it-last')
-const { secondLast } = require('./util')
-let { FS: { errors } } = require('@tabcat/orbit-db-fsstore')
+const { validCid, ipfsAddConfig } = require('./util')
+const { FS } = require('@tabcat/orbit-db-fsstore')
+const { content, read, ls, pathName } = FS
 
-errors = {
-  ...errors,
+const errors = {
+  ...FS.errors,
   notStarted: () => new Error('sharedfs was not started')
 }
 
@@ -17,16 +19,6 @@ const defaultOptions = {
   autoStart: true,
   load: true,
   onStop: function () {}
-}
-
-const ipfsAddConfig = { pin: false, wrapWithDirectory: true }
-
-const validCid = function (CID, cid) {
-  try {
-    return !!new CID(cid)
-  } catch (e) {
-    return false
-  }
 }
 
 class SharedFS {
@@ -59,9 +51,10 @@ class SharedFS {
     this._onDbUpdate = () => {
       this.events.emit('updated')
       this._updateQueue.size === 0 &&
-      this._updateQueue.add(() => this._getCid())
+      this._updateQueue.add(() => this._computeCid())
     }
     this._emptyFile = null
+    this._emptyDir = null
     this._CID = null
 
     this.running = null
@@ -79,6 +72,10 @@ class SharedFS {
     this._db.events.on('replicate.progress', this._dbProgress.replicate)
     if (this.options.load) await this._db.load()
     this._emptyFile = await last(this._ipfs.add(''))
+    this._emptyDir = await this._ipfs.object.patch.setData(
+      await this._ipfs.object.new(),
+      Buffer.from([8, 1])
+    )
     this._CID = this._emptyFile.cid.constructor
     this._db.events.on('replicated', this._onDbUpdate)
     this.events.on('upload', this._onDbUpdate)
@@ -182,7 +179,7 @@ class SharedFS {
 
   async read (path) {
     if (!this.running) throw errors.notStarted()
-    return this._getCid(path)
+    return this._computeCid(path)
   }
 
   async remove (path) {
@@ -212,7 +209,7 @@ class SharedFS {
     this.events.emit('copy')
   }
 
-  async _getCid (path = '/r') {
+  async _computeCid (path = this.fs.root) {
     if (!this.running) throw errors.notStarted()
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
 
@@ -224,26 +221,35 @@ class SharedFS {
       }
     }
 
-    async function * ipfsTree (path) {
-      const fsStruct = [path, ...this.fs.tree(path)]
-        .map((p) => ({
-          path: p.slice(path.lastIndexOf('/')),
-          content: this.fs.content(p) === 'file'
-            ? this._ipfs.cat(fileCid(this.fs.read(p)))
-            : undefined
-        }))
-      yield * this._ipfs.add(fsStruct, ipfsAddConfig)
+    const pathCid = async (fs, path) => {
+      if (content(fs, path) === 'file') {
+        return fileCid(read(fs, path))
+      }
+
+      const dirLinks = await Promise.all(
+        ls(fs, path)
+          .map(async (p) => {
+            const cid = await pathCid(fs, p)
+            const { size } = await this._ipfs.object.get(cid)
+            return { name: pathName(p), size, cid }
+          })
+      )
+
+      return dirLinks.reduce(
+        async (cid, link) => {
+          cid = await cid
+          return this._ipfs.object.patch.addLink(cid, link)
+        },
+        this._emptyDir
+      )
     }
 
     try {
-      if (this.fs.content(path) === 'file') {
-        return fileCid(this.fs.read(path))
-      }
-      const { cid } = await secondLast(ipfsTree.bind(this)(path))
-      return cid
+      const fs = this._db.index
+      return pathCid(fs, path)
     } catch (e) {
       console.error(e)
-      console.error(new Error('sharedfs._getCid failed'))
+      console.error(new Error('sharedfs._computeCid failed'))
       console.error('path:'); console.error(path)
     }
   }

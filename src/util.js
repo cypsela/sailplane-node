@@ -1,17 +1,17 @@
 
 'use strict'
 
-const secondLast = async (iterator) => {
-  const res = []
+const ipfsAddConfig = { pin: false, wrapWithDirectory: true }
 
-  for await (const entry of iterator) {
-    if (res[0]) res[1] = res[0]
-    res[0] = entry
+const validCid = function (CID, cid) {
+  try {
+    return !!new CID(cid)
+  } catch (e) {
+    return false
   }
-
-  return res.length === 2 ? res[1] : res[0]
 }
 
 module.exports = {
-  secondLast
+  ipfsAddConfig,
+  validCid
 }

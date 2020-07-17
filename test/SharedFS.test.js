@@ -8,6 +8,7 @@ const OrbitDB = require('orbit-db')
 const SailplaneNode = require('../src')
 const globSource = require('ipfs-utils/src/files/glob-source')
 const last = require('it-last')
+const { ipfsAddPath, sortFn } = require('./util')
 
 const {
   config,
@@ -92,7 +93,7 @@ Object.keys(testAPIs).forEach(API => {
             '/r/folderWithFiles/hello.txt',
             '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
             '/r/folderWithFiles/close-up-of-cat-248280.jpg'
-          ]
+          ].sort(sortFn)
         )
         assert.strict.equal(updatedCount, 1)
         assert.strict.equal(uploadCount, 1)
@@ -171,9 +172,13 @@ Object.keys(testAPIs).forEach(API => {
         assert.strict.equal(updatedCount, 1)
         assert.strict.equal(uploadCount, 1)
 
-        assert.strict.deepEqual(sharedfs1.fs.tree('/r'), ['/r/mittens.jpg'])
-        const cid = await sharedfs1.read('/r/mittens.jpg')
+        const filePath = '/r/mittens.jpg'
+        assert.strict.deepEqual(sharedfs1.fs.tree('/r'), [filePath])
+
+        const cid = await sharedfs1.read(filePath)
+        const ipfsAddCid = await ipfsAddPath.bind(sharedfs1)(filePath)
         assert.strict.equal(cid.toString(), 'QmPmSxRWBs9TedaVdj7NMXpU3btHydyNwsCrLWEyyVYLDW')
+        assert.strict.equal(ipfsAddCid.toString(), 'QmPmSxRWBs9TedaVdj7NMXpU3btHydyNwsCrLWEyyVYLDW')
       })
 
       it('read a directory', async function () {
@@ -195,12 +200,17 @@ Object.keys(testAPIs).forEach(API => {
             '/r/folderWithFiles/hello.txt',
             '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
             '/r/folderWithFiles/close-up-of-cat-248280.jpg'
-          ]
+          ].sort(sortFn)
         )
         assert.strict.equal(updatedCount, 1)
         assert.strict.equal(uploadCount, 1)
-        const cid = await sharedfs1.read('/r')
+
+        const dirPath = '/r'
+
+        const cid = await sharedfs1.read(dirPath)
+        const ipfsAddCid = await ipfsAddPath.bind(sharedfs1)(dirPath)
         assert.strict.equal(cid.toString(), 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
+        assert.strict.equal(ipfsAddCid.toString(), 'QmXUDejG4nxgcZsig4kgBnKJE7ioCYKmspyr1zrm86fdDD')
       })
 
       it('read a non existing path throws', async function () {
@@ -250,7 +260,7 @@ Object.keys(testAPIs).forEach(API => {
             '/r/folderWithFiles/hello.txt',
             '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
             '/r/folderWithFiles/close-up-of-cat-248280.jpg'
-          ]
+          ].sort(sortFn)
         )
         assert.strict.equal(updatedCount, 1)
         assert.strict.equal(uploadCount, 1)
@@ -309,7 +319,7 @@ Object.keys(testAPIs).forEach(API => {
             '/r/folderWithFiles/hello.txt',
             '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
             '/r/folderWithFiles/close-up-of-cat-248280.jpg'
-          ]
+          ].sort(sortFn)
         )
         assert.strict.equal(updatedCount, 1)
         assert.strict.equal(uploadCount, 1)
@@ -327,7 +337,7 @@ Object.keys(testAPIs).forEach(API => {
             '/r/dir1/hello.txt',
             '/r/dir1/grey-fur-kitten-127028.jpg',
             '/r/dir1/close-up-of-cat-248280.jpg'
-          ]
+          ].sort(sortFn)
         )
         assert.strict.equal(updatedCount, 2)
         assert.strict.equal(uploadCount, 1)
@@ -352,7 +362,7 @@ Object.keys(testAPIs).forEach(API => {
         await sharedfs1.copy('/r/mittens.jpg', '/r', 'file1')
         assert.strict.deepEqual(
           sharedfs1.fs.tree('/r'),
-          ['/r/mittens.jpg', '/r/file1']
+          ['/r/file1', '/r/mittens.jpg']
         )
         assert.strict.equal(updatedCount, 2)
         assert.strict.equal(uploadCount, 1)
@@ -380,7 +390,7 @@ Object.keys(testAPIs).forEach(API => {
             '/r/folderWithFiles/hello.txt',
             '/r/folderWithFiles/grey-fur-kitten-127028.jpg',
             '/r/folderWithFiles/close-up-of-cat-248280.jpg'
-          ]
+          ].sort(sortFn)
         )
         assert.strict.equal(updatedCount, 1)
         assert.strict.equal(uploadCount, 1)
@@ -406,7 +416,7 @@ Object.keys(testAPIs).forEach(API => {
             '/r/dir1/hello.txt',
             '/r/dir1/grey-fur-kitten-127028.jpg',
             '/r/dir1/close-up-of-cat-248280.jpg'
-          ]
+          ].sort(sortFn)
         )
         assert.strict.equal(updatedCount, 2)
         assert.strict.equal(uploadCount, 1)
