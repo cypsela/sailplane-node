@@ -110,6 +110,8 @@ class SharedFS {
     this.events.emit('stop')
   }
 
+  get identity () { return this._db.identity }
+
   async upload (path, source, options = {}) {
     if (!this.running) throw errors.notStarted()
     if (this.fs.content(path) !== 'dir') throw errors.pathDirNo(path)
