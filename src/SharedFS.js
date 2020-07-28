@@ -15,10 +15,13 @@ const errors = {
   notStarted: () => new Error('sharedfs was not started')
 }
 
+const storeTypes = { lite: 0, full: 1, archive: 2 }
+
 const defaultOptions = {
   autoStart: true,
   load: true,
-  onStop: function () {}
+  onStop: function () {},
+  storeType: storeTypes.lite
 }
 
 class SharedFS {
@@ -249,7 +252,13 @@ class SharedFS {
 
     try {
       const fs = this._db.index
-      return pathCid(fs, path)
+      const cid = await pathCid(fs, path)
+
+      if (path === this.fs.root && this.options.storeType > storeTypes.lite) {
+        ipfs.get(cid)
+      }
+
+      return cid
     } catch (e) {
       console.error(e)
       console.error(new Error('sharedfs._computeCid failed'))
