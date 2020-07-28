@@ -35,7 +35,7 @@ async function ipfsAddPath (path = this.fs.root) {
           return { path: p.slice(path.lastIndexOf('/')), content, mtime, mode }
         })
     )
-    yield * this._ipfs.add(fsStruct, ipfsAddConfig)
+    yield * this._ipfs.addAll(fsStruct, ipfsAddConfig)
   }
 
   try {

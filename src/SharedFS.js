@@ -72,7 +72,7 @@ class SharedFS {
     this._db.events.on('load.progress', this._dbProgress.load)
     this._db.events.on('replicate.progress', this._dbProgress.replicate)
     if (this.options.load) await this._db.load()
-    this._emptyFile = await last(this._ipfs.add(''))
+    this._emptyFile = await this._ipfs.add('')
     this._emptyDir = await this._ipfs.object.patch.setData(
       await this._ipfs.object.new(),
       Buffer.from([8, 1])
@@ -122,7 +122,7 @@ class SharedFS {
     const ipfsAddOptions = { ...options, ...ipfsAddConfig }
 
     try {
-      const ipfsUpload = await all(this._ipfs.add(source, ipfsAddOptions))
+      const ipfsUpload = await all(this._ipfs.addAll(source, ipfsAddOptions))
       const batch = this._db.batch()
 
       for (const content of ipfsUpload.slice().reverse()) {

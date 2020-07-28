@@ -7,7 +7,6 @@ const path = require('path')
 const OrbitDB = require('orbit-db')
 const SailplaneNode = require('../src')
 const globSource = require('ipfs-utils/src/files/glob-source')
-const last = require('it-last')
 const { ipfsAddPath, sortFn } = require('./util')
 
 const {
@@ -34,7 +33,7 @@ Object.keys(testAPIs).forEach(API => {
       orbitdb1 = await OrbitDB.createInstance(ipfs, { directory: path.join(dbPath, '1') })
       sailplane1 = await SailplaneNode.create(orbitdb1)
       address1 = await sailplane1.determineAddress('sharedfs1')
-      file1 = await last(ipfs.add('data', { pin: false }))
+      file1 = await ipfs.add('data', { pin: false })
     })
 
     after(async () => {
