@@ -5,7 +5,6 @@ const EventEmitter = require('events').EventEmitter
 const Buffer = require('safe-buffer').Buffer
 const { default: PQueue } = require('p-queue')
 const all = require('it-all')
-const last = require('it-last')
 const { validCid, ipfsAddConfig } = require('./util')
 const { FS } = require('@tabcat/orbit-db-fsstore')
 const { content, read, ls, pathName } = FS
