@@ -29,7 +29,7 @@ async function ipfsAddPath (path = this.fs.root) {
         .map(async (p) => {
           const { content, mtime, mode } = this.fs.content(p) === 'file'
             ? await first(
-              this._ipfs.get(fileCid(this.fs.read(p)))
+              this._ipfs.get(fileCid(this.fs.read(p) && this.fs.read(p).cid))
             )
             : {}
           return { path: p.slice(path.lastIndexOf('/')), content, mtime, mode }
@@ -40,7 +40,7 @@ async function ipfsAddPath (path = this.fs.root) {
 
   try {
     if (this.fs.content(path) === 'file') {
-      return fileCid(this.fs.read(path))
+      return fileCid(this.fs.read(path) && this.fs.read(path).cid)
     }
 
     const { cid } = await secondLast(ipfsTree.bind(this)(path))

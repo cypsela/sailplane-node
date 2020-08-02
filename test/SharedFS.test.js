@@ -157,7 +157,7 @@ Object.keys(testAPIs).forEach(API => {
         assert.strict.equal(updatedCount, 2)
         assert.strict.equal(mkfileCount, 1)
         assert.strict.equal(writeCount, 1)
-        assert.strict.equal(sharedfs1.fs.read(path), file1.cid.toString())
+        assert.strict.equal(sharedfs1.fs.read(path).cid, file1.cid.toString())
       })
 
       it('read a file', async function () {
