@@ -5,7 +5,7 @@ const EventEmitter = require('events').EventEmitter
 const Buffer = require('safe-buffer').Buffer
 const { default: PQueue } = require('p-queue')
 const all = require('it-all')
-const { validCid, ipfsAddConfig, readCid, sharedCrypter } = require('./util')
+const { validCid, ipfsAddConfig, readCid, sharedCrypter, encryptContent } = require('./util')
 const { FS } = require('@tabcat/orbit-db-fsstore')
 const { content, read, ls, pathName } = FS
 const b64 = require('base64-js')
@@ -158,7 +158,8 @@ class SharedFS {
 
     const ipfsAddOptions = { ...options, ...ipfsAddConfig }
 
-    // if (this.Crypter) source = encryptContent(this.Crypter, source)
+    const keyMap = this._encrypted ? new Map() : null
+    source = this._encrypted ? encryptContent(source) : source
 
     try {
       const ipfsUpload = await all(this._ipfs.addAll(source, ipfsAddOptions))
@@ -181,9 +182,13 @@ class SharedFS {
             batch.mk(prefix(fsPath), name(fsPath))
           }
           if (readCid(this.fs.read(fsPath)) !== content.cid.toString()) {
+            const key = this._encrypted ? keyMap.get(content.path) : null
             batch.write(
               this.fs.joinPath(prefix(fsPath), name(fsPath)),
-              { cid: content.cid.toString() }
+              {
+                cid: content.cid.toString(),
+                ...this._encrypted ? { key } : {}
+              }
             )
           }
         }
