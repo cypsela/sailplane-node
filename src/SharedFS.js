@@ -5,7 +5,7 @@ const EventEmitter = require('events').EventEmitter
 const Buffer = require('safe-buffer').Buffer
 const { default: PQueue } = require('p-queue')
 const all = require('it-all')
-const { validCid, ipfsAddConfig } = require('./util')
+const { validCid, ipfsAddConfig, readCid, sharedCrypter } = require('./util')
 const { FS } = require('@tabcat/orbit-db-fsstore')
 const { content, read, ls, pathName } = FS
 const b64 = require('base64-js')
@@ -18,7 +18,7 @@ const errors = {
 
 const writeReqs = (self) => {
   if (!self.running) throw errors.notStarted()
-  if (self.Crypter && !this.crypting) throw new Error('encryption not yet set')
+  if (self._encrypted && !this.crypting) throw new Error('encryption not yet set')
 }
 
 const storeTypes = { lite: 0, full: 1, archive: 2 }
@@ -27,7 +27,8 @@ const defaultOptions = {
   autoStart: true,
   load: true,
   onStop: function () {},
-  storeType: storeTypes.lite
+  storeType: storeTypes.lite,
+  Crypter: null
 }
 
 class SharedFS {
@@ -72,6 +73,13 @@ class SharedFS {
     }
 
     this.Crypter = options.Crypter
+    this._sharedCrypter = sharedCrypter(secp256k1, this.Crypter)
+    this._encrypted = Boolean(
+      this.Crypter &&
+      this._db.options.meta &&
+      this._db.options.meta.enc &&
+      this.access._db
+    )
 
     this.running = null
     this.crypting = null
@@ -91,10 +99,11 @@ class SharedFS {
     if (this.running !== null) { return }
     this._db.events.on('load.progress', this._dbProgress.load)
     this._db.events.on('replicate.progress', this._dbProgress.replicate)
-    if (this._db.options.meta && this._db.options.meta.enc) {
-      await this._setupEncryption()
+    if (this._encrypted) await this._setupEncryption()
+    if (this.access._db) {
+      this.access._db.events.on('replicated', this._onAccessUpdate)
+      this.access._db.events.on('write', this._onAccessUpdate)
     }
-
     if (this.options.load) await this._db.load()
     this._emptyFile = await this._ipfs.add('')
     this._emptyDir = await this._ipfs.object.patch.setData(
@@ -118,6 +127,10 @@ class SharedFS {
   async stop ({ drop } = {}) {
     if (this.running !== true) { return }
     await this._onStop()
+    if (this.access._db) {
+      this.access._db.events.removeListener('replicated', this._onAccessUpdate)
+      this.access._db.events.removeListener('write', this._onAccessUpdate)
+    }
     this._db.events.removeListener('load.progress', this._dbProgress.load)
     this._db.events.removeListener('replicate.progress', this._dbProgress.replicate)
     this._db.events.removeListener('replicated', this._onDbUpdate)
@@ -130,7 +143,7 @@ class SharedFS {
     this.events.removeListener('copy', this._onDbUpdate)
     await this._updateQueue.onIdle()
     await this._accessQueue.onIdle()
-    drop && this._db.access._db ? await this._db.access._db.drop() : null
+    drop && this.access._db ? await this.access._db.drop() : null
     drop ? await this._db.drop() : await this._db.close()
     this.running = false
     this.events.emit('stop')
@@ -167,13 +180,7 @@ class SharedFS {
           if (!this.fs.exists(fsPath)) {
             batch.mk(prefix(fsPath), name(fsPath))
           }
-          if ((this.fs.read(fsPath) && this.fs.read(fsPath).cid) !== content.cid.toString()) {
-            // const cryptoKey = this.Crypter && await this.Crypter.generateKey()
-            // const key = b64.fromByteArray(await this.Crypter.exportKey(cryptoKey))
-            // batch.write(
-            //   this.fs.joinPath(prefix(fsPath), name(fsPath)),
-            //   { cid: content.cid.toString(), key }
-            // )
+          if (readCid(this.fs.read(fsPath)) !== content.cid.toString()) {
             batch.write(
               this.fs.joinPath(prefix(fsPath), name(fsPath)),
               { cid: content.cid.toString() }
@@ -217,17 +224,6 @@ class SharedFS {
     return this._computeCid(path)
   }
 
-  async cid (path) {
-    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
-    return this._computeCid(path)
-  }
-
-  async cat (path) {
-    writeReqs(this)
-    if (!this.fs.exists(path)) throw errors.pathExistNo(path)
-    return
-  }
-
   async remove (path) {
     writeReqs(this)
     this.fs.content(path) === 'dir'
@@ -265,7 +261,7 @@ class SharedFS {
 
     const pathCid = async (fs, path) => {
       if (content(fs, path) === 'file') {
-        return fileCid(read(fs, path) && read(fs, path).cid)
+        return fileCid(readCid(read(fs, path)))
       }
 
       const dirLinks = await Promise.all(
@@ -305,7 +301,9 @@ class SharedFS {
   async _setupEncryption () {
     const db = this._db
     if (db.crypter && db.access.get('admin').has(db.identity.id)) {
-      await this.grantRead(db.identity.publicKey)
+      if (!db.access.get('read').has(db.identity.publicKey)) {
+        await this._grantRead(db.identity.publicKey)
+      }
     }
     await this._setCrypter()
   }
@@ -313,19 +311,19 @@ class SharedFS {
   async _accessUpdatedAdmin () {}
 
   async _accessUpdated () {
-    if (this.running === false || !this.Crypter) { return }
     const db = this._db
     if (db.access.get('admin').has(db.identity.id)) {
       await this._accessUpdatedAdmin()
     }
-    if (db.access.get('read').has(db.identity.publicKey)) {
-      if (this.crypting === false) {
-        await this._setCrypter()
-      }
-    }
+    if (this._encrypted && !this.crypting) await this._setCrypter()
   }
 
   async grantRead (publicKey) {
+    writeReqs(this)
+    return this._grantRead(publicKey)
+  }
+
+  async _grantRead (publicKey) {
     const db = this._db
     const bufferKey = Buffer.from(publicKey, 'hex')
     if (!db.access.get('admin').has(db.identity.id)) {
@@ -335,47 +333,54 @@ class SharedFS {
       throw new Error('invalid publicKey provided')
     }
 
-    const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
-    const secret = secp256k1.ecdh(bufferKey, privateKey.marshal())
-    const cryptoKey = await Crypter.importKey(secret)
-    const crypter = await this.Crypter.create(cryptoKey)
+    try {
+      const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
 
-    if (!db.crypter) {
-      await this._setCrypter()
+      const crypter = await this._sharedCrypter(bufferKey, privateKey.marshal())
+
+      const driveKey = await this.Crypter.exportKey(db.crypter._cryptoKey)
+      const { cipherbytes, iv } = await crypter.encrypt(driveKey.buffer)
+
+      const encryptedKey = {
+        publicKey: db.identity.publicKey,
+        cipherbytes: b64.fromByteArray(cipherbytes),
+        iv: b64.fromByteArray(iv)
+      }
+
+      await db.access.grant('read', publicKey)
+      await db.access._db.put(publicKey, encryptedKey)
+    } catch (e) {
+      console.error(e)
+      console.error(new Error('sharedfs.grantRead failed'))
+      console.error('publicKey:'); console.error(publicKey)
     }
-    const driveKey = await this.Crypter.exportKey(db.crypter._cryptoKey)
-
-    const { cipherbytes, iv } = await crypter.encrypt(driveKey.buffer)
-
-    const encryptedKey = {
-      publicKey: db.identity.publicKey,
-      cipherbytes: b64.fromByteArray(cipherbytes),
-      iv: b64.fromByteArray(iv)
-    }
-
-    await db.access.grant('read', publicKey)
-    await db.access.grant(publicKey, encryptedKey)
   }
 
   async _setCrypter () {
     const db = this._db
-    if (db.access.get('read').has(db.identity.publicKey)) {
-      const { publicKey, cipherbytes, iv } = db.access._db.get(db.identity.publicKey)
+    if (!db.access.get('read').has(db.identity.publicKey)) {
+      this.crypting = false
+      return
+    }
 
+    try {
+      const { publicKey, cipherbytes, iv } = db.access._db.get(db.identity.publicKey)
       const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
-      const secret = secp256k1.ecdh(Buffer.from(publicKey, 'hex'), privateKey.marshal())
-      const cryptoKey = await Crypter.importKey(secret)
-      const crypter = await this.Crypter.create(cryptoKey)
+
+      const crypter = await this._sharedCrypter(Buffer.from(publicKey, 'hex'), privateKey.marshal())
 
       const driveKey = await crypter.decrypt(
-        b64.toByteArray(cipherbytes),
+        b64.toByteArray(cipherbytes).buffer,
         b64.toByteArray(iv)
       )
       db.setCrypter(await this.Crypter.importKey(driveKey))
 
       this.crypting = true
       this.events.emit('encrypted')
-    } else {
+      return
+    } catch (e) {
+      console.error(e)
+      console.error(new Error('sharedfs._setCrypter failed'))
       this.crypting = false
     }
   }

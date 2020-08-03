@@ -11,7 +11,17 @@ const validCid = function (CID, cid) {
   }
 }
 
+const readCid = (read) => read && read.cid
+
+const sharedCrypter = (secp256k1, Crypter) => async (publicKey, privateKey) => {
+  const secret = secp256k1.ecdh(publicKey, privateKey)
+  const cryptoKey = await Crypter.importKey(secret.buffer)
+  const crypter = await this.Crypter.create(cryptoKey)
+}
+
 module.exports = {
   ipfsAddConfig,
-  validCid
+  validCid,
+  readCid,
+  sharedCrypter
 }

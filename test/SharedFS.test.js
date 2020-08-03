@@ -6,6 +6,7 @@ const rmrf = require('rimraf')
 const path = require('path')
 const OrbitDB = require('orbit-db')
 const SailplaneNode = require('../src')
+const { readCid } = require('../src/util')
 const globSource = require('ipfs-utils/src/files/glob-source')
 const { ipfsAddPath, sortFn } = require('./util')
 
@@ -157,7 +158,11 @@ Object.keys(testAPIs).forEach(API => {
         assert.strict.equal(updatedCount, 2)
         assert.strict.equal(mkfileCount, 1)
         assert.strict.equal(writeCount, 1)
+<<<<<<< HEAD
         assert.strict.equal(sharedfs1.fs.read(path).cid, file1.cid.toString())
+=======
+        assert.strict.equal(readCid(sharedfs1.fs.read(path)), file1.cid.toString())
+>>>>>>> 522e766... fsstore encryption and grantRead
       })
 
       it('read a file', async function () {

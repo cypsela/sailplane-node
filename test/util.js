@@ -1,7 +1,7 @@
 
 'use strict'
 const first = require('it-first')
-const { ipfsAddConfig } = require('../src/util')
+const { ipfsAddConfig, readCid } = require('../src/util')
 
 async function secondLast (iterator) {
   const res = []
@@ -29,7 +29,11 @@ async function ipfsAddPath (path = this.fs.root) {
         .map(async (p) => {
           const { content, mtime, mode } = this.fs.content(p) === 'file'
             ? await first(
+<<<<<<< HEAD
               this._ipfs.get(fileCid(this.fs.read(p) && this.fs.read(p).cid))
+=======
+              this._ipfs.get(fileCid(readCid(this.fs.read(p))))
+>>>>>>> 522e766... fsstore encryption and grantRead
             )
             : {}
           return { path: p.slice(path.lastIndexOf('/')), content, mtime, mode }
@@ -40,7 +44,11 @@ async function ipfsAddPath (path = this.fs.root) {
 
   try {
     if (this.fs.content(path) === 'file') {
+<<<<<<< HEAD
       return fileCid(this.fs.read(path) && this.fs.read(path).cid)
+=======
+      return fileCid(readCid(this.fs.read(path)))
+>>>>>>> 522e766... fsstore encryption and grantRead
     }
 
     const { cid } = await secondLast(ipfsTree.bind(this)(path))
