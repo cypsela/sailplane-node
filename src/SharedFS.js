@@ -340,7 +340,7 @@ class SharedFS {
 
   async _setupEncryption () {
     const db = this._db
-    if (db.crypter && db.access.get('admin').has(db.identity.id)) {
+    if (db._crypter && db.access.get('admin').has(db.identity.id)) {
       if (!db.access.get('read').has(db.identity.publicKey)) {
         await this._grantRead(db.identity.publicKey)
       }
@@ -378,7 +378,7 @@ class SharedFS {
 
       const crypter = await this._sharedCrypter(bufferKey, privateKey.marshal())
 
-      const driveKey = await this._Crypter.exportKey(db.crypter._cryptoKey)
+      const driveKey = await this._Crypter.exportKey(db._crypter._cryptoKey)
       const { cipherbytes, iv } = await crypter.encrypt(driveKey)
 
       const encryptedKey = {
@@ -414,12 +414,9 @@ class SharedFS {
         b64.toByteArray(cipherbytes).buffer,
         b64.toByteArray(iv)
       )
-      // db.setCrypter(await this._Crypter.importKey(driveKey))
 
-      const crypter2 = await this._Crypter.importKey(driveKey)
-
-      this._db._crypter = crypter2
-      this._db._index._crypter = crypter2
+      const cryptoKey = await this._Crypter.importKey(driveKey)
+      db.setCrypter(await this._Crypter.create(cryptoKey))
 
       this.crypting = true
       this.events.emit('encrypted')
