@@ -36,6 +36,7 @@
     "p-queue": "^6.4.0"
   },
   "devDependencies": {
+    "@tabcat/aes-gcm-crypter": "^1.0.1",
     "cross-env": "^7.0.2",
     "ipfs-utils": "^2.2.2",
     "it-first": "^1.0.2",
