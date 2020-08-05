@@ -25,9 +25,11 @@ const sharedCrypter = (secp256k1, Crypter) => async (publicKey, privateKey) => {
 }
 
 const combineChunks = async (content) => {
-  const chunks = []
-  for await (const chunk of content) { chunks.push(...chunk) }
-  return chunks
+  let chunks = []
+  for await (const chunk of content) {
+    chunks = chunks.concat(Array.from(chunk.buffer))
+  }
+  return new Uint8Array(chunks)
 }
 const first = async (iter) => { for await (const f of iter) { return f } }
 
@@ -56,7 +58,7 @@ async function * encryptContent (Crypter, source, map) {
           contentBuf = new Uint8Array(item.content)
         }
       } else if (item.content[Symbol.asyncIterator]) {
-        contentBuf = new Uint8Array(await combineChunks(item.content))
+        contentBuf = await combineChunks(item.content)
       } else if (isBlob(item.content)) {
         contentBuf = new Uint8Array(await item.content.arrayBuffer())
       } else {
@@ -71,7 +73,7 @@ async function * encryptContent (Crypter, source, map) {
 }
 
 async function catCid (ipfs, cid, { Crypter, key, iv }) {
-  let contentBuf = new Uint8Array(await combineChunks(ipfs.cat(cid)))
+  let contentBuf = await combineChunks(ipfs.cat(cid))
 
   if (Crypter && key && iv) {
     try {
