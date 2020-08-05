@@ -2,6 +2,7 @@
 'use strict'
 
 const Buffer = require('safe-buffer').Buffer
+const b64 = require('base64-js')
 const all = require('it-all')
 const isBlob = require('is-blob')
 
@@ -69,11 +70,30 @@ async function * encryptContent (Crypter, source, map) {
   }
 }
 
+async function catCid (ipfs, cid, { Crypter, key, iv }) {
+  let contentBuf = new Uint8Array(await combineChunks(ipfs.cat(cid)))
+
+  if (Crypter && key && iv) {
+    try {
+      const cryptoKey = await Crypter.importKey(b64.toByteArray(key).buffer)
+      const crypter = await Crypter.create(cryptoKey)
+      iv = b64.toByteArray(iv)
+      return new Uint8Array(await crypter.decrypt(contentBuf.buffer, iv))
+    } catch (e) {
+      console.error(e)
+      return new Uint8Array()
+    }
+  } else {
+    return contentBuf
+  }
+}
+
 module.exports = {
   ipfsAddConfig,
   validCid,
   readCid,
   sharedCrypter,
   combineChunks,
-  encryptContent
+  encryptContent,
+  catCid
 }

@@ -240,29 +240,12 @@ class SharedFS {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     if (this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
     const file = this.fs.read(path)
+    const Crypter = this._Crypter
     const key = file && file.key
     const iv = file && file.iv
 
     return {
-      data: () => this.catCid(util.readCid(file), { key, iv })
-    }
-  }
-
-  async catCid (cid, { key, iv } = {}) {
-    let contentBuf = new Uint8Array(await util.combineChunks(this._ipfs.cat(cid)))
-
-    if (this._encrypted) {
-      try {
-        const cryptoKey = await this._Crypter.importKey(b64.toByteArray(key).buffer)
-        const crypter = await this._Crypter.create(cryptoKey)
-        iv = b64.toByteArray(iv)
-        return new Uint8Array(await crypter.decrypt(contentBuf.buffer, iv))
-      } catch (e) {
-        console.error(e)
-        return new Uint8Array()
-      }
-    } else {
-      return contentBuf
+      data: () => util.catCid(this._ipfs, util.readCid(file), { Crypter, key, iv })
     }
   }
 
