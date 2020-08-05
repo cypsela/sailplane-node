@@ -25,11 +25,11 @@ const sharedCrypter = (secp256k1, Crypter) => async (publicKey, privateKey) => {
 }
 
 const combineChunks = async (content) => {
-  let chunks = []
+  let chunks = Buffer.from([])
   for await (const chunk of content) {
-    chunks = chunks.concat(Array.from(chunk.buffer))
+    chunks = Buffer.concat([chunks, chunk])
   }
-  return new Uint8Array(chunks)
+  return chunks
 }
 const first = async (iter) => { for await (const f of iter) { return f } }
 
