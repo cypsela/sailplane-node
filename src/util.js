@@ -3,6 +3,7 @@
 
 const Buffer = require('safe-buffer').Buffer
 const b64 = require('base64-js')
+const secp256k1 = require('secp256k1')
 const all = require('it-all')
 const isBlob = require('is-blob')
 
@@ -18,7 +19,7 @@ const validCid = function (CID, cid) {
 
 const readCid = (read) => read && read.cid
 
-const sharedCrypter = (secp256k1, Crypter) => async (publicKey, privateKey) => {
+const sharedCrypter = (Crypter) => async (publicKey, privateKey) => {
   const secret = secp256k1.ecdh(publicKey, privateKey)
   const cryptoKey = await Crypter.importKey(secret.buffer)
   return Crypter.create(cryptoKey)
@@ -90,6 +91,12 @@ async function catCid (ipfs, cid, { Crypter, key, iv }) {
   }
 }
 
+const verifyPub = (publicKeyBuf) => secp256k1.publicKeyVerify(publicKeyBuf)
+
+const compressedPub = (publicKeyBuf) => Buffer.from(
+  secp256k1.publicKeyConvert(publicKeyBuf, true)
+)
+
 module.exports = {
   ipfsAddConfig,
   validCid,
@@ -97,5 +104,7 @@ module.exports = {
   sharedCrypter,
   combineChunks,
   encryptContent,
-  catCid
+  catCid,
+  verifyPub,
+  compressedPub
 }

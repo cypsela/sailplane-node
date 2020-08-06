@@ -9,7 +9,6 @@ const util = require('./util')
 const { FS } = require('@tabcat/orbit-db-fsstore')
 const { content, read, ls, pathName } = FS
 const b64 = require('base64-js')
-const secp256k1 = require('secp256k1')
 
 const errors = {
   ...FS.errors,
@@ -73,7 +72,7 @@ class SharedFS {
     }
 
     this._Crypter = options.Crypter
-    this._sharedCrypter = util.sharedCrypter(secp256k1, this._Crypter)
+    this._sharedCrypter = util.sharedCrypter(this._Crypter)
     this._encrypted = Boolean(
       this._Crypter &&
       this._db.options.meta &&
@@ -354,9 +353,12 @@ class SharedFS {
     if (!db.access.get('admin').has(db.identity.id)) {
       throw new Error('admin priviledges required to grant read')
     }
-    if (!secp256k1.publicKeyVerify(bufferKey)) {
+    if (!util.verifyPub(bufferKey)) {
       throw new Error('invalid publicKey provided')
     }
+
+    const compressedPub = util.compressedPub(bufferKey)
+    const compressedHexPub = compressedPub.toString('hex')
 
     try {
       const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
@@ -367,13 +369,13 @@ class SharedFS {
       const { cipherbytes, iv } = await crypter.encrypt(driveKey)
 
       const encryptedKey = {
-        publicKey: db.identity.publicKey,
+        publicKey: compressedHexPub,
         cipherbytes: b64.fromByteArray(new Uint8Array(cipherbytes)),
         iv: b64.fromByteArray(iv)
       }
 
-      await db.access.grant('read', publicKey)
-      await db.access.grant(publicKey, encryptedKey)
+      await db.access.grant('read', compressedHexPub)
+      await db.access.grant(compressedHexPub, encryptedKey)
     } catch (e) {
       console.error(e)
       console.error(new Error('sharedfs.grantRead failed'))
@@ -383,17 +385,22 @@ class SharedFS {
 
   async _setCrypter () {
     const db = this._db
-    if (!db.access.get('read').has(db.identity.publicKey)) {
+    const readHas = (v) => db.access.get('read').has(v)
+    const bufferKey = Buffer.from(db.identity.publicKey, 'hex')
+    const compressedPub = util.compressedPub(bufferKey)
+    const compressedHexPub = compressedPub.toString('hex')
+
+    if (!readHas(db.identity.publicKey) && !readHas(compressedHexPub)) {
       this.crypting = false
       return
     }
 
     try {
-      const set = db.access._db.get(db.identity.publicKey)
+      const set = db.access._db.get(db.identity.publicKey) || db.access._db.get(compressedHexPub)
       const { publicKey, cipherbytes, iv } = set.values().next().value
       const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
 
-      const crypter = await this._sharedCrypter(Buffer.from(publicKey, 'hex'), privateKey.marshal())
+      const crypter = await this._sharedCrypter(bufferKey, privateKey.marshal())
 
       const driveKey = await crypter.decrypt(
         b64.toByteArray(cipherbytes).buffer,
