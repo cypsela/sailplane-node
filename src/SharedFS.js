@@ -324,7 +324,8 @@ class SharedFS {
 
   async _setupEncryption () {
     const db = this._db
-    if (db._crypter && db.access.get('admin').has(db.identity.id)) {
+    const adminHas = (v) => db.access.get('admin').has(v)
+    if (db._crypter && (adminHas(db.identity.id) || adminHas(db.identity.publicKey))) {
       if (!db.access.get('read').has(db.identity.publicKey)) {
         await this._grantRead(db.identity.publicKey)
       }
@@ -350,7 +351,8 @@ class SharedFS {
   async _grantRead (publicKey) {
     const db = this._db
     const bufferKey = Buffer.from(publicKey, 'hex')
-    if (!db.access.get('admin').has(db.identity.id)) {
+    const adminHas = (v) => db.access.get('admin').has(v)
+    if (!adminHas(db.identity.id) && !adminHas(db.identity.publicKey)) {
       throw new Error('admin priviledges required to grant read')
     }
     if (!util.verifyPub(bufferKey)) {
