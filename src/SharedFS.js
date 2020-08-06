@@ -371,7 +371,7 @@ class SharedFS {
       const { cipherbytes, iv } = await crypter.encrypt(driveKey)
 
       const encryptedKey = {
-        publicKey: compressedHexPub,
+        publicKey: db.identity.publicKey,
         cipherbytes: b64.fromByteArray(new Uint8Array(cipherbytes)),
         iv: b64.fromByteArray(iv)
       }
@@ -388,8 +388,7 @@ class SharedFS {
   async _setCrypter () {
     const db = this._db
     const readHas = (v) => db.access.get('read').has(v)
-    const bufferKey = Buffer.from(db.identity.publicKey, 'hex')
-    const compressedPub = util.compressedPub(bufferKey)
+    const compressedPub = util.compressedPub(Buffer.from(db.identity.publicKey, 'hex'))
     const compressedHexPub = compressedPub.toString('hex')
 
     if (!readHas(db.identity.publicKey) && !readHas(compressedHexPub)) {
@@ -397,12 +396,17 @@ class SharedFS {
       return
     }
 
+    const set = db.access._db.get(db.identity.publicKey) || db.access._db.get(compressedHexPub)
+    if (!set) {
+      this.crypting = false
+      return
+    }
+
     try {
-      const set = db.access._db.get(db.identity.publicKey) || db.access._db.get(compressedHexPub)
       const { publicKey, cipherbytes, iv } = set.values().next().value
       const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
 
-      const crypter = await this._sharedCrypter(bufferKey, privateKey.marshal())
+      const crypter = await this._sharedCrypter(Buffer.from(publicKey, 'hex'), privateKey.marshal())
 
       const driveKey = await crypter.decrypt(
         b64.toByteArray(cipherbytes).buffer,
@@ -412,7 +416,10 @@ class SharedFS {
       const cryptoKey = await this._Crypter.importKey(driveKey)
       db.setCrypter(await this._Crypter.create(cryptoKey))
 
+
       this.crypting = true
+      await db._updateIndex()
+      this.events.emit('updated')
       this.events.emit('encrypted')
       return
     } catch (e) {
