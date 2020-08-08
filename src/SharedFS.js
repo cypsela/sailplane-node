@@ -235,7 +235,7 @@ class SharedFS {
     return this._computeCid(path)
   }
 
-  cat (path) {
+  cat (path, options = {}) {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     if (this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
     const file = this.fs.read(path)
@@ -244,7 +244,10 @@ class SharedFS {
     const iv = file && file.iv
 
     return {
-      data: () => util.catCid(this._ipfs, util.readCid(file), { Crypter, key, iv })
+      data: () => util.catCid(
+        this._ipfs, util.readCid(file),
+        { Crypter, key, iv, handleUpdate: options.handleUpdate }
+      )
     }
   }
 

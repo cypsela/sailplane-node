@@ -25,10 +25,13 @@ const sharedCrypter = (Crypter) => async (publicKey, privateKey) => {
   return Crypter.create(cryptoKey)
 }
 
-const combineChunks = async (content) => {
+const combineChunks = async (content, { handleUpdate, total } = {}) => {
   let chunks = Buffer.from([])
+  let i = 0
   for await (const chunk of content) {
+    if (handleUpdate) handleUpdate(i, total)
     chunks = Buffer.concat([chunks, chunk])
+    i++
   }
   return chunks
 }
@@ -73,8 +76,11 @@ async function * encryptContent (Crypter, source, map) {
   }
 }
 
-async function catCid (ipfs, cid, { Crypter, key, iv }) {
-  let contentBuf = await combineChunks(ipfs.cat(cid))
+async function catCid (ipfs, cid, { Crypter, key, iv, handleUpdate } = {}) {
+  const ipfsCat = ipfs.cat(cid)
+  const [{ size }] = await all(ipfs.get(cid))
+  const total = Math.round(size / 262171);
+  let contentBuf = await combineChunks(ipfsCat, { handleUpdate , total })
 
   if (Crypter && key && iv) {
     try {
