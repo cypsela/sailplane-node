@@ -653,6 +653,12 @@ Object.keys(testAPIs).forEach(API => {
         assert.strict.deepEqual(sharedfs1.fs.tree('/r'), [filePath])
 
         const cid = await sharedfs1.read(filePath)
+        const ipfsObjectStat = await sharedfs1._ipfs.object.stat(cid)
+        assert.strict.equal(ipfsObjectStat.NumLinks, 0)
+        assert.strict.equal(ipfsObjectStat.BlockSize, 16664)
+        assert.strict.equal(ipfsObjectStat.LinksSize, 4)
+        assert.strict.equal(ipfsObjectStat.DataSize, 16660)
+        assert.strict.equal(ipfsObjectStat.CumulativeSize, 16664)
       })
 
       it('read a directory', async function () {
@@ -682,6 +688,12 @@ Object.keys(testAPIs).forEach(API => {
         const dirPath = '/r'
 
         const cid = await sharedfs1.read(dirPath)
+        const ipfsObjectStat = await sharedfs1._ipfs.object.stat(cid)
+        assert.strict.equal(ipfsObjectStat.NumLinks, 1)
+        assert.strict.equal(ipfsObjectStat.BlockSize, 63)
+        assert.strict.equal(ipfsObjectStat.LinksSize, 61)
+        assert.strict.equal(ipfsObjectStat.DataSize, 2)
+        assert.strict.equal(ipfsObjectStat.CumulativeSize, 1961078)
       })
 
       it('read a non existing path throws', async function () {

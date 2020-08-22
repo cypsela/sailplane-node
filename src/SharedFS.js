@@ -300,13 +300,8 @@ class SharedFS {
           })
       )
 
-      return dirLinks.reduce(
-        async (cid, link) => {
-          cid = await cid
-          return this._ipfs.object.patch.addLink(cid, link)
-        },
-        this._emptyDir
-      )
+      // Data buffer says unixFs and directory
+      return this._ipfs.object.put({ Data: Buffer.from([8, 1]), Links: dirLinks })
     }
 
     try {
