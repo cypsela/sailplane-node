@@ -119,7 +119,7 @@ class SharedFS {
     this.events.on('move', this._onDbUpdate)
     this.events.on('copy', this._onDbUpdate)
     this.running = true
-    // this._onDbUpdate()
+    this._onDbUpdate()
     this.events.emit('start')
   }
 
