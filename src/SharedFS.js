@@ -367,9 +367,7 @@ class SharedFS {
 
     try {
       const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
-
       const crypter = await this._sharedCrypter(bufferKey, privateKey.marshal())
-
       const driveKey = await this._Crypter.exportKey(db._crypter._cryptoKey)
       const { cipherbytes, iv } = await crypter.encrypt(driveKey)
 
@@ -408,13 +406,8 @@ class SharedFS {
     try {
       const { publicKey, cipherbytes, iv } = set.values().next().value
       const privateKey = await db.identity.provider.keystore.getKey(db.identity.id)
-
       const crypter = await this._sharedCrypter(Buffer.from(publicKey, 'hex'), privateKey.marshal())
-
-      const driveKey = await crypter.decrypt(
-        b64.toByteArray(cipherbytes).buffer,
-        b64.toByteArray(iv)
-      )
+      const driveKey = await crypter.decrypt(b64.toByteArray(cipherbytes).buffer, b64.toByteArray(iv))
 
       const cryptoKey = await this._Crypter.importKey(driveKey)
       db.setCrypter(await this._Crypter.create(cryptoKey))
