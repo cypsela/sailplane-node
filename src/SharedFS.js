@@ -83,8 +83,8 @@ class SharedFS {
     this.running = null
     this.crypting = null
 
-    this._emptyFile = null
-    this._emptyDir = null
+    this._emptyDirCid = null
+    this._emptyFileCid = null
     this._CID = null
   }
 
@@ -104,12 +104,9 @@ class SharedFS {
       this.access._db.events.on('write', this._onAccessUpdate)
     }
     if (this.options.load) await this._db.load()
-    this._emptyFile = await this._ipfs.add('')
-    this._emptyDir = await this._ipfs.object.patch.setData(
-      await this._ipfs.object.new(),
-      Buffer.from([8, 1])
-    )
-    this._CID = this._emptyFile.cid.constructor
+    this._emptyDirCid = await this._ipfs.object.put({ Data: Buffer.from([8, 1]) })
+    this._emptyFileCid = await this._ipfs.object.put({ Data: Buffer.from([8, 2]) })
+    this._CID = this._emptyFileCid.constructor
     this._db.events.on('replicated', this._onDbUpdate)
     this.events.on('upload', this._onDbUpdate)
     this.events.on('mkdir', this._onDbUpdate)
@@ -279,7 +276,7 @@ class SharedFS {
     try {
       return new this._CID(cid)
     } catch (e) {
-      return this._emptyFile.cid
+      return this._emptyFileCid
     }
   }
 
@@ -299,6 +296,8 @@ class SharedFS {
             return { name: pathName(p), size, cid }
           })
       )
+
+      if (dirLinks.length === 0) return this._emptyDirCid
 
       // Data buffer says unixFs and directory
       return this._ipfs.object.put({ Data: Buffer.from([8, 1]), Links: dirLinks })
