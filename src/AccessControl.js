@@ -68,7 +68,7 @@ class AccessControl {
       this._ac._db.events.removeListener('replicated', this._onAccessUpdate)
       this._ac._db.events.removeListener('write', this._onAccessUpdate)
       await this._accessQueue.onIdle()
-      await drop ? this._ac._db.drop() : this._ac._db.close()
+      drop ? await this._ac._db.drop() : await this._ac._db.close()
     }
     this.running = false
   }

@@ -124,7 +124,7 @@ class SharedFS {
     this.events.removeListener('move', this._onDbUpdate)
     this.events.removeListener('copy', this._onDbUpdate)
     await this._updateQueue.onIdle()
-    await drop ? this._db.drop() : this._db.close()
+    drop ? await this._db.drop() : await this._db.close()
     this.running = false
     this.events.emit('stop')
   }
