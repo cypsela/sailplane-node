@@ -509,7 +509,8 @@ Object.keys(testAPIs).forEach(API => {
       })
 
       it('exposes db access', async function () {
-        assert.strict.equal(sharedfs1.access, sharedfs1._db.access)
+        assert.strict.equal(Boolean(sharedfs1.access), true)
+        assert.strict.equal(sharedfs1.access._ac, sharedfs1._db.access)
       })
 
       it('exposes db identity', async function () {
@@ -988,7 +989,8 @@ Object.keys(testAPIs).forEach(API => {
       })
 
       it('exposes db access', async function () {
-        assert.strict.equal(sharedfs1.access, sharedfs1._db.access)
+        assert.strict.equal(Boolean(sharedfs1.access), true)
+        assert.strict.equal(sharedfs1.access._ac, sharedfs1._db.access)
       })
 
       it('exposes db identity', async function () {
