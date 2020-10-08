@@ -148,14 +148,12 @@ class SharedFS {
       for (const content of ipfsUpload.slice().reverse()) {
         // parent(content.path) can be an empty string or a path
         const fsPath = `${path}${content.path && `/${content.path}`}`
-
         // handle dir
         if (content.mode === 493) {
           if (!this.fs.exists(fsPath)) {
             batch.mkdir(prefix(fsPath), name(fsPath))
           }
         }
-
         // handle file
         if (content.mode === 420) {
           if (!this.fs.exists(fsPath)) {
@@ -220,7 +218,6 @@ class SharedFS {
     const file = this.fs.read(path)
     const key = file && file.key
     const iv = file && file.iv
-
     return {
       data: () => util.catCid(
         this._ipfs, util.readCid(file),
@@ -263,12 +260,10 @@ class SharedFS {
 
   async _computeCid (path = this.fs.root) {
     writeReqs(this)
-
     const pathCid = async (fs, path) => {
       if (content(fs, path) === 'file') {
         return this._fileCid(util.readCid(read(fs, path)))
       }
-
       const dirLinks = await Promise.all(
         ls(fs, path)
           .map(async (p) => {
@@ -277,9 +272,7 @@ class SharedFS {
             return { name: pathName(p), size, cid }
           })
       )
-
       if (dirLinks.length === 0) return this._emptyDirCid
-
       // Data buffer says unixFs and directory
       return this._ipfs.object.put({ Data: Buffer.from([8, 1]), Links: dirLinks })
     }
@@ -287,11 +280,9 @@ class SharedFS {
     try {
       const fs = this._db.index
       const cid = await pathCid(fs, path)
-
       if (path === this.fs.root && this.options.storeType > storeTypes.lite) {
         ipfs.get(cid)
       }
-
       return cid
     } catch (e) {
       console.error(e)
