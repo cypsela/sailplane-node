@@ -145,7 +145,7 @@ class SharedFS {
       const ipfsUpload = await all(this._ipfs.addAll(source, ipfsAddOptions))
       const batch = this._db.batch()
 
-      for (const content of ipfsUpload.slice().reverse()) {
+      for (const content of ipfsUpload.reverse()) {
         // parent(content.path) can be an empty string or a path
         const fsPath = `${path}${content.path && `/${content.path}`}`
         // handle dir
