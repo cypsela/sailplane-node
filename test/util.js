@@ -9,7 +9,7 @@ async function ipfsAddPath (path = this.fs.root) {
     try {
       return new this._CID(cid)
     } catch (e) {
-      return this._emptyFile.cid
+      return this._emptyFileCid
     }
   }
 
