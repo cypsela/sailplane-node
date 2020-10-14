@@ -21,7 +21,7 @@ module.exports = async function (source) {
   }
 
   function traverse (dir = tree, path = '') {
-    return Object.keys(dir.children).sort()
+    return Object.keys(dir.children).sort(util.sortFn)
       .reduce((array, c) => {
         const child = dir.children[c]
         const childPath = `${path}/${c}`
