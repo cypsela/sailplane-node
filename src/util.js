@@ -7,7 +7,9 @@ const secp256k1 = require('secp256k1')
 const all = require('it-all')
 const isBlob = require('is-blob')
 
-const ipfsAddConfig = { pin: false, wrapWithDirectory: true }
+const ipfsAddConfig = { pin: false, wrapWithDirectory: false }
+
+const removeSlash = (path) => path.slice(path.startsWith('/') ? 1 : 0)
 
 const validCid = function (CID, cid) {
   try {
@@ -37,42 +39,16 @@ const combineChunks = async (content, { handleUpdate, total } = {}) => {
 }
 const first = async (iter) => { for await (const f of iter) { return f } }
 
-async function * encryptContent (Crypter, source, map) {
-  for await (const item of source) {
-    if (!item.content) {
-      yield item
-    } else {
-      const cryptoKey = await Crypter.generateKey()
-      const iv = await Crypter.generateIV()
-      map.set(
-        item.path[0] === '/' ? item.path.slice(1) : item.path,
-        { cryptoKey, iv }
-      )
-      const crypter = Crypter.create(cryptoKey)
-
-      let contentBuf
-      if (typeof item.content === 'string') {
-        contentBuf = Buffer.from(item.content)
-      } else if (item.content[Symbol.iterator]) {
-        if (item.content instanceof Uint8Array) {
-          contentBuf = item.content
-        } else if (await first(item.content) instanceof Uint8Array) {
-          contentBuf = await combineChunks(item.content)
-        } else if (await first(item.content) instanceof Number) {
-          contentBuf = new Uint8Array(item.content)
-        }
-      } else if (item.content[Symbol.asyncIterator]) {
-        contentBuf = await combineChunks(item.content)
-      } else if (isBlob(item.content)) {
-        contentBuf = new Uint8Array(await item.content.arrayBuffer())
-      } else {
-        throw new Error('source content not supported')
-      }
-
-      const { cipherbytes } = await crypter.encrypt(contentBuf.buffer, iv)
-
-      yield { ...item, content: new Uint8Array(cipherbytes) }
-    }
+async function encryptContent (Crypter, content) {
+  const cryptoKey = await Crypter.generateKey()
+  const crypter = Crypter.create(cryptoKey)
+  const contentBuf = await combineChunks(content)
+  const { cipherbytes, iv } = await crypter.encrypt(contentBuf.buffer)
+  const rawKey = await Crypter.exportKey(cryptoKey)
+  return {
+    cipherbytes: new Uint8Array(cipherbytes),
+    iv: new Uint8Array(iv),
+    rawKey: new Uint8Array(rawKey)
   }
 }
 
@@ -105,6 +81,7 @@ const compressedPub = (publicKeyBuf) => Buffer.from(
 
 module.exports = {
   ipfsAddConfig,
+  removeSlash,
   validCid,
   readCid,
   sharedCrypter,

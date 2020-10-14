@@ -1,18 +1,8 @@
 
 'use strict'
 const first = require('it-first')
+const last = require('it-last')
 const { ipfsAddConfig, readCid } = require('../src/util')
-
-async function secondLast (iterator) {
-  const res = []
-
-  for await (const entry of iterator) {
-    if (res[0]) res[1] = res[0]
-    res[0] = entry
-  }
-
-  return res.length === 2 ? res[1] : res[0]
-}
 
 async function ipfsAddPath (path = this.fs.root) {
   const fileCid = (cid) => {
@@ -28,9 +18,7 @@ async function ipfsAddPath (path = this.fs.root) {
       [path, ...this.fs.tree(path)]
         .map(async (p) => {
           const { content, mtime, mode } = this.fs.content(p) === 'file'
-            ? await first(
-              this._ipfs.get(fileCid(readCid(this.fs.read(p))))
-            )
+            ? await first(this._ipfs.get(fileCid(readCid(this.fs.read(p)))))
             : {}
           return { path: p.slice(path.lastIndexOf('/')), content, mtime, mode }
         })
@@ -43,7 +31,7 @@ async function ipfsAddPath (path = this.fs.root) {
       return fileCid(readCid(this.fs.read(path)))
     }
 
-    const { cid } = await secondLast(ipfsTree.bind(this)(path))
+    const { cid } = await last(ipfsTree.bind(this)(path))
     return cid
   } catch (e) {
     console.error(e)
@@ -55,7 +43,6 @@ async function ipfsAddPath (path = this.fs.root) {
 const sortFn = (o, t) => o.toLowerCase().localeCompare(t.toLowerCase())
 
 module.exports = {
-  secondLast,
   ipfsAddPath,
   sortFn
 }
