@@ -5,11 +5,13 @@ const AccessControl = require('./AccessControl')
 const EventEmitter = require('events').EventEmitter
 const Buffer = require('safe-buffer').Buffer
 const { default: PQueue } = require('p-queue')
+const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
+const treeBuilder = require('./tree-builder')
 const all = require('it-all')
 const util = require('./util')
 const { FS } = require('@tabcat/orbit-db-fsstore')
 const { content, read, ls, pathName } = FS
-const b64 = require('base64-js')
+const { fromByteArray: b64 } = require('base64-js')
 
 const errors = {
   ...FS.errors,
@@ -136,43 +138,34 @@ class SharedFS {
 
     const ipfsAddOptions = { ...options, ...util.ipfsAddConfig }
 
-    const keyMap = this.encrypted ? new Map() : null
-    source = this.encrypted
-      ? util.encryptContent(this.Crypter, source, keyMap)
-      : source
-
     try {
-      const ipfsUpload = await all(this._ipfs.addAll(source, ipfsAddOptions))
+      const tree = await treeBuilder(normaliseInput(source))
       const batch = this._db.batch()
-
-      for (const content of ipfsUpload.reverse()) {
-        // parent(content.path) can be an empty string or a path
-        const fsPath = `${path}${content.path && `/${content.path}`}`
-        // handle dir
-        if (content.mode === 493) {
-          if (!this.fs.exists(fsPath)) {
-            batch.mkdir(prefix(fsPath), name(fsPath))
-          }
-        }
-        // handle file
-        if (content.mode === 420) {
+      for (const item of tree.traverse()) {
+        item.path = util.removeSlash(item.path)
+        const fsPath = `${path}${item.path && `/${item.path}`}`
+        if (item.content) {
           if (!this.fs.exists(fsPath)) {
             batch.mk(prefix(fsPath), name(fsPath))
           }
-          if (util.readCid(this.fs.read(fsPath)) !== content.cid.toString()) {
-            const { cryptoKey, iv } = this.encrypted ? keyMap.get(content.path) : {}
-            const rawKey = this.encrypted
-              ? new Uint8Array(await this.Crypter.exportKey(cryptoKey))
-              : null
+          const { path, mode, mtime, content } = item
+          const enc = this.encrypted && await util.encryptContent(this.Crypter, content)
+          const { cid } = await this._ipfs.add(
+            this.encrypted ? { content: enc.cipherbytes, mtime } : item,
+            ipfsAddOptions
+          )
+          if (util.readCid(this.fs.read(fsPath)) !== cid.toString()) {
             batch.write(
               this.fs.joinPath(prefix(fsPath), name(fsPath)),
               {
-                cid: content.cid.toString(),
-                ...this.encrypted
-                  ? { key: b64.fromByteArray(rawKey), iv: b64.fromByteArray(iv) }
-                  : {}
+                cid: cid.toString(),
+                ...this.encrypted ? { key: b64(enc.rawKey), iv: b64(enc.iv) } : {}
               }
             )
+          }
+        } else {
+          if (!this.fs.exists(fsPath)) {
+            batch.mkdir(prefix(fsPath), name(fsPath))
           }
         }
       }

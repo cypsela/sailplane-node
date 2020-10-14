@@ -1,14 +1,14 @@
 'use strict'
 
+const util = require('./util')
 const conflictError = () => new Error('conflict while building upload tree')
 const emptyDir = () => ({ children: {} })
-const removeSlash = (path) => path.slice(path.startsWith('/') ? 1 : 0)
 
 module.exports = async function (source) {
   const tree = emptyDir()
   for await (const object of source) {
     const isFile = Boolean(object.content)
-    const pathNames = removeSlash(object.path).split('/')
+    const pathNames = util.removeSlash(object.path).split('/')
     const lastDirName = isFile ? -1 : pathNames.length
     const lastDir = pathNames.slice(0, lastDirName)
       .reduce((dir, name) => {
