@@ -5,7 +5,6 @@ const Buffer = require('safe-buffer').Buffer
 const b64 = require('base64-js')
 const secp256k1 = require('secp256k1')
 const all = require('it-all')
-const isBlob = require('is-blob')
 
 const ipfsAddConfig = { pin: false, wrapWithDirectory: false }
 
