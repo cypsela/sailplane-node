@@ -4,7 +4,6 @@
 const EventEmitter = require('events').EventEmitter
 const { default: PQueue } = require('p-queue')
 const util = require('./util')
-
 const setHas = (set, ...a) => Boolean(a.filter(x => set.has(x)).length)
 const missingCrypter = () => new Error('missing this.Crypter')
 

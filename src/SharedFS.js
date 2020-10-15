@@ -242,19 +242,19 @@ class SharedFS {
     this.events.emit('copy')
   }
 
-  _parseCid (cid) {
-    try {
-      return new this._CID(cid)
-    } catch (e) {
-      return this._emptyFileCid
-    }
-  }
-
   async _computeCid (path = this.fs.root) {
     writeReqs(this)
+    const fileCid = (cid) => {
+      try {
+        return new this._CID(cid)
+      } catch (e) {
+        return this._emptyFileCid
+      }
+    }
+
     const pathCid = async (fs, path) => {
       if (content(fs, path) === 'file') {
-        return this._parseCid(util.readCid(read(fs, path)))
+        return fileCid(util.readCid(read(fs, path)))
       }
       const dirLinks = await Promise.all(
         ls(fs, path)
