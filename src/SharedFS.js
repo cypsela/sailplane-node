@@ -150,7 +150,7 @@ class SharedFS {
           const { mode, mtime, content } = item
           const enc = this.encrypted && await util.encryptContent(this.Crypter, content)
           const { cid } = await this._ipfs.add(
-            this.encrypted ? { content: enc.cipherbytes, mtime } : { content, mtime },
+            this.encrypted ? enc.cipherbytes : content,
             ipfsAddOptions
           )
           if (util.readCid(this.fs.read(fsPath)) !== cid.toString()) {
@@ -158,7 +158,8 @@ class SharedFS {
               this.fs.joinPath(prefix(fsPath), name(fsPath)),
               {
                 cid: cid.toString(),
-                ...this.encrypted ? { key: b64(enc.rawKey), iv: b64(enc.iv) } : {}
+                ...this.encrypted ? { key: b64(enc.rawKey), iv: b64(enc.iv) } : {},
+                ...mtime ? { mtime } : {}
               }
             )
           }
