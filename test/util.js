@@ -40,9 +40,6 @@ async function ipfsAddPath (path = this.fs.root) {
   }
 }
 
-const sortFn = (o, t) => o.toLowerCase().localeCompare(t.toLowerCase())
-
 module.exports = {
-  ipfsAddPath,
-  sortFn
+  ipfsAddPath
 }

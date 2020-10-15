@@ -11,6 +11,8 @@ const ipfsAddConfig = { pin: false, wrapWithDirectory: false }
 
 const removeSlash = (path) => path.slice(path.startsWith('/') ? 1 : 0)
 
+const sortFn = (o, t) => o.toLowerCase().localeCompare(t.toLowerCase())
+
 const validCid = function (CID, cid) {
   try {
     return !!new CID(cid)
@@ -82,6 +84,7 @@ const compressedPub = (publicKeyBuf) => Buffer.from(
 module.exports = {
   ipfsAddConfig,
   removeSlash,
+  sortFn,
   validCid,
   readCid,
   sharedCrypter,
