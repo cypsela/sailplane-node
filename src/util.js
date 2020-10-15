@@ -38,7 +38,6 @@ const combineChunks = async (content, { handleUpdate, total } = {}) => {
   }
   return chunks
 }
-const first = async (iter) => { for await (const f of iter) { return f } }
 
 async function encryptContent (Crypter, content) {
   const cryptoKey = await Crypter.generateKey()
