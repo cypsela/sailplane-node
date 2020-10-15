@@ -18,7 +18,7 @@ npm install @cypsela/sailplane-node
 # API
 *check out [./test](./test) for examples*
 
-## SailplaneNode API
+## SailplaneNode API *(out of date)*
 ### .create(orbitdb, [options])
 `static` `async`
 
