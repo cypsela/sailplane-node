@@ -7,7 +7,6 @@ const Buffer = require('safe-buffer').Buffer
 const { default: PQueue } = require('p-queue')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
-const all = require('it-all')
 const util = require('./util')
 const { FS } = require('@tabcat/orbit-db-fsstore')
 const { content, read, ls, pathName } = FS
@@ -148,10 +147,10 @@ class SharedFS {
           if (!this.fs.exists(fsPath)) {
             batch.mk(prefix(fsPath), name(fsPath))
           }
-          const { path, mode, mtime, content } = item
+          const { mode, mtime, content } = item
           const enc = this.encrypted && await util.encryptContent(this.Crypter, content)
           const { cid } = await this._ipfs.add(
-            this.encrypted ? { content: enc.cipherbytes, mtime } : item,
+            this.encrypted ? { content: enc.cipherbytes, mtime } : { content, mtime },
             ipfsAddOptions
           )
           if (util.readCid(this.fs.read(fsPath)) !== cid.toString()) {
