@@ -62,9 +62,9 @@ async function catCid (ipfs, cid, { Crypter, key, iv, handleUpdate } = {}) {
     try {
       const cryptoKey = await Crypter.importKey(b64.toByteArray(key).buffer)
       const crypter = await Crypter.create(cryptoKey)
-      iv = b64.toByteArray(iv)
-      return new Uint8Array(await crypter.decrypt(contentBuf.buffer, iv))
+      return new Uint8Array(await crypter.decrypt(contentBuf.buffer, b64.toByteArray(iv)))
     } catch (e) {
+      console.error(`catCid failed: CID ${cid}`)
       console.error(e)
       return new Uint8Array()
     }
@@ -75,9 +75,8 @@ async function catCid (ipfs, cid, { Crypter, key, iv, handleUpdate } = {}) {
 
 const verifyPub = (publicKeyBuf) => secp256k1.publicKeyVerify(publicKeyBuf)
 
-const compressedPub = (publicKeyBuf) => Buffer.from(
-  secp256k1.publicKeyConvert(publicKeyBuf, true)
-)
+const compressedPub = (publicKeyBuf) =>
+  Buffer.from(secp256k1.publicKeyConvert(publicKeyBuf, true))
 
 module.exports = {
   ipfsAddConfig,

@@ -123,9 +123,7 @@ class AccessControl {
         cipherbytes: b64.fromByteArray(new Uint8Array(cipherbytes)),
         iv: b64.fromByteArray(iv)
       }
-      const compressedHexPub = util.compressedPub(
-        Buffer.from(this.identity.publicKey, 'hex')
-      ).toString('hex')
+      const compressedHexPub = util.compressedPub(Buffer.from(this.identity.publicKey, 'hex')).toString('hex')
 
       await this._ac.grant(perms.read, compressedHexPub)
       await this._ac.grant(compressedHexPub, encryptedKey)
@@ -138,9 +136,7 @@ class AccessControl {
 
   async _setCrypter () {
     if (!this.Crypter) throw missingCrypter()
-    const compressedHexPub = util.compressedPub(
-      Buffer.from(this.identity.publicKey, 'hex')
-    ).toString('hex')
+    const compressedHexPub = util.compressedPub(Buffer.from(this.identity.publicKey, 'hex')).toString('hex')
     const read = this.read.has(this.identity.publicKey) || this.read.has(compressedHexPub)
     const set = this._ac._db.get(this.identity.publicKey) || this._ac._db.get(compressedHexPub)
     if (!read || !set) {

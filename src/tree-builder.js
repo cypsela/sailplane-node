@@ -9,8 +9,7 @@ module.exports = async function (source) {
   for await (const object of source) {
     const isFile = Boolean(object.content)
     const pathNames = util.removeSlash(object.path).split('/')
-    const lastDirName = isFile ? -1 : pathNames.length
-    const lastDir = pathNames.slice(0, lastDirName)
+    const lastDir = pathNames.slice(0, isFile ? -1 : pathNames.length)
       .reduce((dir, name) => {
         const exists = dir.children[name]
         if (exists && exists.content) throw conflictError()
@@ -26,9 +25,7 @@ module.exports = async function (source) {
         const child = dir.children[c]
         const childPath = `${path}/${c}`
         return array.concat(
-          child.content
-            ? child
-            : [{ path: childPath }, ...traverse(child, childPath)]
+          child.content ? child : [{ path: childPath }, ...traverse(child, childPath)]
         )
       }, [])
   }

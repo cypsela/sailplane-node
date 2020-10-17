@@ -3,20 +3,17 @@
 
 const FSStore = require('@tabcat/orbit-db-fsstore')
 const SharedFS = require('./SharedFS')
-
 const ipfsKey = '_ipfs'
 
 class SailplaneNode {
   constructor (orbitdb, options = {}) {
     this._orbitdb = orbitdb
     this.options = options
-
     this.mounted = {}
 
     if (!this._orbitdb[ipfsKey]) {
       throw new Error('cannot find ipfs node in orbitdb instance')
     }
-
     if (!orbitdb.constructor.databaseTypes.includes(FSStore.type)) {
       orbitdb.constructor.addDatabaseType(FSStore.type, FSStore)
     }

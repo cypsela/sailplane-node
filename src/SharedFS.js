@@ -39,7 +39,6 @@ class SharedFS {
     this._ipfs = ipfs
     this.options = { ...defaultOptions, ...options }
     this.events = new EventEmitter()
-
     this.address = this._db.address
 
     this.fs = {}
@@ -51,8 +50,6 @@ class SharedFS {
     this.fs.read = this._db.read
     this.fs.tree = this._db.tree
     this.fs.ls = this._db.ls
-
-    this._onStop = this.options.onStop
 
     const statsFirst = (p) => [...p.slice(-2), ...p.slice(0, -2)]
     this._dbProgress = {
@@ -112,7 +109,7 @@ class SharedFS {
 
   async stop ({ drop } = {}) {
     if (this.running !== true) { return }
-    await this._onStop()
+    await this.options.onStop()
     this.access.events.removeListener('encrypted', this._onDbUpdate)
     this._db.events.removeListener('load.progress', this._dbProgress.load)
     this._db.events.removeListener('replicate.progress', this._dbProgress.replicate)
@@ -140,6 +137,7 @@ class SharedFS {
     try {
       const tree = await treeBuilder(normaliseInput(source))
       const batch = this._db.batch()
+
       for (const item of tree.traverse()) {
         item.path = util.removeSlash(item.path)
         const fsPath = `${path}${item.path && `/${item.path}`}`
@@ -149,19 +147,11 @@ class SharedFS {
           }
           const { mode, mtime, content } = item
           const enc = this.encrypted && await util.encryptContent(this.Crypter, content)
-          const { cid } = await this._ipfs.add(
-            this.encrypted ? enc.cipherbytes : content,
-            ipfsAddOptions
-          )
+          const data = this.encrypted ? enc.cipherbytes : content
+          const { cid } = await this._ipfs.add(data, ipfsAddOptions)
           if (util.readCid(this.fs.read(fsPath)) !== cid.toString()) {
-            batch.write(
-              this.fs.joinPath(prefix(fsPath), name(fsPath)),
-              {
-                cid: cid.toString(),
-                ...this.encrypted ? { key: b64(enc.rawKey), iv: b64(enc.iv) } : {},
-                ...mtime ? { mtime } : {}
-              }
-            )
+            const decrypt = this.encrypted ? { key: b64(enc.rawKey), iv: b64(enc.iv) } : {}
+            batch.write(fsPath, { cid: cid.toString(), ...decrypt, ...mtime ? { mtime } : {} })
           }
         } else {
           if (!this.fs.exists(fsPath)) {
@@ -213,7 +203,8 @@ class SharedFS {
     const iv = file && file.iv
     return {
       data: () => util.catCid(
-        this._ipfs, util.readCid(file),
+        this._ipfs,
+        util.readCid(file),
         { Crypter: this.Crypter, key, iv, handleUpdate: options.handleUpdate }
       )
     }
