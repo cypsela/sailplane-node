@@ -78,7 +78,7 @@ class AccessControl {
   async _setupEncryption () {
     if (this._db._crypter && this.hasAdmin) {
       if (!this.read.has(this.identity.publicKey)) {
-        await this._grantRead(this.identity.publicKey)
+        await this.grantRead(this.identity.publicKey)
       }
     }
     await this._setCrypter()
@@ -98,14 +98,11 @@ class AccessControl {
   }
 
   async grantRead (publicKey) {
-    if (!this.crypted) throw new Error('db not encrypted, cannot grant read')
+    if (!this._ac._db) throw new Error('cannot mutate ipfs access controller')
+    if (!this.hasAdmin) throw new Error('no admin permissions, cannot grant read')
     if (!this.hasRead) throw new Error('no read permissions, cannot grant read')
-    return this._grantRead(publicKey)
-  }
+    if (!this.crypted) throw new Error('db not encrypted, cannot grant read')
 
-  async _grantRead (publicKey) {
-    if (!this.Crypter) throw missingCrypter()
-    if (!this.hasAdmin) throw new Error('admin priviledges required to grant read')
     const bufferKey = Buffer.from(publicKey, 'hex')
     if (!util.verifyPub(bufferKey)) throw new Error('invalid publicKey provided')
 
