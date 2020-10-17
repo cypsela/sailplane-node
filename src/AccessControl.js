@@ -91,6 +91,12 @@ class AccessControl {
     if (this._crypted && !this.hasRead) await this._setCrypter()
   }
 
+  async grantWrite (publicKey) {
+    if (!this._ac._db) throw new Error('cannot mutate ipfs access controller')
+    if (!this.hasAdmin) throw new Error('no admin permissions, cannot grant write')
+    return this._ac.grant('write', publicKey)
+  }
+
   async grantRead (publicKey) {
     if (!this.crypted) throw new Error('db not encrypted, cannot grant read')
     if (!this.hasRead) throw new Error('no read permissions, cannot grant read')
