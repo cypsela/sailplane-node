@@ -50,7 +50,7 @@ class AccessControl {
 
   async start () {
     if (this.running !== null) { return }
-    if (this._crypted) {
+    if (this.crypted) {
       await this._setupEncryption()
     } else {
       this.reading = true
