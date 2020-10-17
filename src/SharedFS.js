@@ -19,9 +19,8 @@ const errors = {
 
 const writeReqs = (self) => {
   if (!self.running) throw errors.notStarted()
-  if (!self.access.hasRead || !self.access.hasWrite) {
-    throw new Error('missing write access')
-  }
+  if (!self.access.hasRead) throw new Error('missing read access')
+  if (!self.access.hasWrite) throw new Error('missing write access')
 }
 
 const storeTypes = { lite: 0, full: 1, archive: 2 }
