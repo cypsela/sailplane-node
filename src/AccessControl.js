@@ -106,7 +106,7 @@ class AccessControl {
   async grantRead (publicKey) {
     if (!this._ac._db) throw new Error('cannot mutate ipfs access controller')
     if (!this.hasAdmin) throw new Error('no admin permissions, cannot grant read')
-    if (!this.hasRead) throw new Error('no read permissions, cannot grant read')
+    if (!this.hasRead && this.running) throw new Error('no read permissions, cannot grant read')
     if (!this.crypted) throw new Error('db not encrypted, cannot grant read')
 
     const bufferKey = Buffer.from(publicKey, 'hex')
@@ -123,7 +123,7 @@ class AccessControl {
         cipherbytes: b64.fromByteArray(new Uint8Array(cipherbytes)),
         iv: b64.fromByteArray(iv)
       }
-      const compressedHexPub = util.compressedPub(Buffer.from(this.identity.publicKey, 'hex')).toString('hex')
+      const compressedHexPub = util.compressedPub(bufferKey).toString('hex')
 
       await this._ac.grant(perms.read, compressedHexPub)
       await this._ac.grant(compressedHexPub, encryptedKey)
