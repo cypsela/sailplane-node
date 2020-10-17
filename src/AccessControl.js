@@ -8,6 +8,12 @@ const util = require('./util')
 const setHas = (set, ...a) => Boolean(a.filter(x => set.has(x)).length)
 const missingCrypter = () => new Error('missing this.Crypter')
 
+const perms = {
+  admin: 'admin',
+  write: 'write',
+  read: 'read'
+}
+
 class AccessControl {
   constructor (db, options) {
     this._db = db
@@ -32,11 +38,11 @@ class AccessControl {
 
   get publicKey () { return this._db.identity.publicKey }
 
-  get admin () { return this._ac._db ? this._ac.get('admin') : new Set() }
+  get admin () { return this._ac._db ? this._ac.get(perms.admin) : new Set() }
 
-  get read () { return this._ac._db ? this._ac.get('read') : new Set() }
+  get read () { return this._ac._db ? this._ac.get(perms.read) : new Set() }
 
-  get write () { return this._ac._db ? this._ac.get('write') : new Set(this._ac._write) }
+  get write () { return this._ac._db ? this._ac.get(perms.write) : new Set(this._ac._write) }
 
   get hasAdmin () { return setHas(this.admin, this.identity.id, this.identity.publicKey, '*') }
 
@@ -94,7 +100,7 @@ class AccessControl {
   async grantWrite (publicKey) {
     if (!this._ac._db) throw new Error('cannot mutate ipfs access controller')
     if (!this.hasAdmin) throw new Error('no admin permissions, cannot grant write')
-    return this._ac.grant('write', publicKey)
+    return this._ac.grant(perms.write, publicKey)
   }
 
   async grantRead (publicKey) {
@@ -121,7 +127,7 @@ class AccessControl {
         Buffer.from(this.identity.publicKey, 'hex')
       ).toString('hex')
 
-      await this._ac.grant('read', compressedHexPub)
+      await this._ac.grant(perms.read, compressedHexPub)
       await this._ac.grant(compressedHexPub, encryptedKey)
     } catch (e) {
       console.error(e)
