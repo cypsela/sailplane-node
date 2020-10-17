@@ -93,6 +93,7 @@ class SharedFS {
     this._emptyFileCid = await this._ipfs.object.put({ Data: Buffer.from([8, 2]) })
     this._CID = this._emptyFileCid.constructor
     this.access = await AccessControl.create(this._db, this.options)
+    this.access.events.on('encrypted', this._onDbUpdate)
     this._db.events.on('load.progress', this._dbProgress.load)
     this._db.events.on('replicate.progress', this._dbProgress.replicate)
     this._db.events.on('replicated', this._onDbUpdate)
@@ -112,7 +113,7 @@ class SharedFS {
   async stop ({ drop } = {}) {
     if (this.running !== true) { return }
     await this._onStop()
-    await this.access.stop({ drop })
+    this.access.events.removeListener('encrypted', this._onDbUpdate)
     this._db.events.removeListener('load.progress', this._dbProgress.load)
     this._db.events.removeListener('replicate.progress', this._dbProgress.replicate)
     this._db.events.removeListener('replicated', this._onDbUpdate)
@@ -123,7 +124,7 @@ class SharedFS {
     this.events.removeListener('remove', this._onDbUpdate)
     this.events.removeListener('move', this._onDbUpdate)
     this.events.removeListener('copy', this._onDbUpdate)
-    await this._updateQueue.onIdle()
+    await Promise.all([this.access.stop({ drop }), this._updateQueue.onIdle()])
     drop ? await this._db.drop() : await this._db.close()
     this.running = false
     this.events.emit('stop')

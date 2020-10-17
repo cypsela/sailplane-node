@@ -147,7 +147,6 @@ class AccessControl {
 
       this.reading = true
       await this._db._updateIndex()
-      this._db.events.emit('write') // trigger the 'updated' event in sharedfs
       this.events.emit('encrypted')
     } catch (e) {
       console.error(e)
