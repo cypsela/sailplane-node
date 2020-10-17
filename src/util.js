@@ -33,7 +33,7 @@ const combineChunks = async (content, { handleUpdate, total } = {}) => {
   let i = 0
   for await (const chunk of content) {
     if (handleUpdate) handleUpdate(i, total)
-    chunks = Buffer.concat([chunks, chunk])
+    chunks = Buffer.concat([chunks, Buffer.from(chunk)])
     i++
   }
   return chunks
