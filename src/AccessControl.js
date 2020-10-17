@@ -3,6 +3,7 @@
 
 const EventEmitter = require('events').EventEmitter
 const { default: PQueue } = require('p-queue')
+const b64 = require('base64-js')
 const util = require('./util')
 const setHas = (set, ...a) => Boolean(a.filter(x => set.has(x)).length)
 const missingCrypter = () => new Error('missing this.Crypter')
