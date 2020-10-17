@@ -30,6 +30,8 @@ class AccessControl {
 
   get identity () { return this._db.identity }
 
+  get publicKey () { return this._db.identity.publicKey }
+
   get admin () { return this._ac._db ? this._ac.get('admin') : new Set() }
 
   get read () { return this._ac._db ? this._ac.get('read') : new Set() }
