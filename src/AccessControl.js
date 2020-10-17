@@ -94,7 +94,7 @@ class AccessControl {
 
   async _accessUpdated () {
     if (this.hasAdmin) await this._accessUpdatedAdmin()
-    if (this._crypted && !this.hasRead) await this._setCrypter()
+    if (this.crypted && !this.hasRead) await this._setCrypter()
   }
 
   async grantWrite (publicKey) {
