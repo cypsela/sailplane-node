@@ -104,8 +104,8 @@ class SharedFS {
     this.events.on('move', this._onDbUpdate)
     this.events.on('copy', this._onDbUpdate)
     if (this.options.load) await this._db.load()
+    if (this.access.hasRead) this._onDbUpdate()
     this.running = true
-    this._onDbUpdate()
     this.events.emit('start')
   }
 
@@ -243,7 +243,11 @@ class SharedFS {
   }
 
   async _computeCid (path = this.fs.root) {
-    writeReqs(this)
+    if (!this.access.hasRead) {
+      console.warn('_computeCid skipped, no read access')
+      return
+    }
+
     const fileCid = (cid) => {
       try {
         return new this._CID(cid)
