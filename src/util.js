@@ -47,8 +47,8 @@ async function encryptContent (Crypter, content) {
   const rawKey = await Crypter.exportKey(cryptoKey)
   return {
     cipherbytes: new Uint8Array(cipherbytes),
-    iv: new Uint8Array(iv),
-    rawKey: new Uint8Array(rawKey)
+    iv: b64.fromByteArray(new Uint8Array(iv)),
+    rawKey: b64.fromByteArray(new Uint8Array(rawKey))
   }
 }
 

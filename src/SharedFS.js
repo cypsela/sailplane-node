@@ -10,7 +10,6 @@ const treeBuilder = require('./tree-builder')
 const util = require('./util')
 const { FS } = require('@tabcat/orbit-db-fsstore')
 const { content, read, ls, pathName } = FS
-const { fromByteArray: b64 } = require('base64-js')
 
 const errors = {
   ...FS.errors,
@@ -150,7 +149,7 @@ class SharedFS {
           const data = this.encrypted ? enc.cipherbytes : content
           const { cid } = await this._ipfs.add(data, ipfsAddOptions)
           if (util.readCid(this.fs.read(fsPath)) !== cid.toString()) {
-            const decrypt = this.encrypted ? { key: b64(enc.rawKey), iv: b64(enc.iv) } : {}
+            const decrypt = this.encrypted ? { key: enc.rawKey, iv: enc.iv } : {}
             batch.write(fsPath, { cid: cid.toString(), ...decrypt, ...mtime ? { mtime } : {} })
           }
         } else {
