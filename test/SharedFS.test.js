@@ -981,7 +981,7 @@ Object.keys(testAPIs).forEach(API => {
 
         // reopen sharedfs1
         await sharedfs1.stop()
-        sharedfs1 = await sailplane1.mount(address1, { autoStart: false })
+        sharedfs1 = await sailplane1.mount(address1, { Crypter, autoStart: false })
 
         let loadProgressCount = 0
         sharedfs1.events.on('db.load.progress', () => loadProgressCount++)
