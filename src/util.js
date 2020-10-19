@@ -53,23 +53,20 @@ async function encryptContent (Crypter, content) {
 }
 
 async function catCid (ipfs, cid, { Crypter, key, iv, handleUpdate } = {}) {
-  const ipfsCat = ipfs.cat(cid)
   const [{ size }] = await all(ipfs.get(cid))
-  const total = Math.round(size / 262171);
-  let contentBuf = await combineChunks(ipfsCat, { handleUpdate , total })
+  const total = Math.round(size / 262171)
+  const contentBuf = await combineChunks(ipfs.cat(cid), { handleUpdate , total })
 
-  if (Crypter && key && iv) {
-    try {
-      const cryptoKey = await Crypter.importKey(b64.toByteArray(key).buffer)
-      const crypter = await Crypter.create(cryptoKey)
-      return new Uint8Array(await crypter.decrypt(contentBuf.buffer, b64.toByteArray(iv)))
-    } catch (e) {
-      console.error(`catCid failed: CID ${cid}`)
-      console.error(e)
-      return new Uint8Array()
-    }
-  } else {
-    return contentBuf
+  if (!Crypter || !key || !iv) return contentBuf
+
+  try {
+    const cryptoKey = await Crypter.importKey(b64.toByteArray(key).buffer)
+    const crypter = await Crypter.create(cryptoKey)
+    return new Uint8Array(await crypter.decrypt(contentBuf.buffer, b64.toByteArray(iv)))
+  } catch (e) {
+    console.error(`catCid failed: CID ${cid}`)
+    console.error(e)
+    return new Uint8Array()
   }
 }
 
