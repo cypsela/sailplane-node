@@ -32,8 +32,8 @@ const combineChunks = async (content, { handleUpdate, total } = {}) => {
   let chunks = Buffer.from([])
   let i = 0
   for await (const chunk of content) {
-    if (handleUpdate) handleUpdate(i, total)
     chunks = Buffer.concat([chunks, Buffer.from(chunk)])
+    if (handleUpdate) handleUpdate(chunks.length, total)
     i++
   }
   return chunks
@@ -53,8 +53,7 @@ async function encryptContent (Crypter, content) {
 }
 
 async function catCid (ipfs, cid, { Crypter, key, iv, handleUpdate } = {}) {
-  const [{ size }] = await all(ipfs.get(cid))
-  const total = Math.round(size / 262171)
+  const [{ size: total }] = await all(ipfs.get(cid))
   const contentBuf = await combineChunks(ipfs.cat(cid), { handleUpdate , total })
 
   if (!Crypter || !key || !iv) return contentBuf
