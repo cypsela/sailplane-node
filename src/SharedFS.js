@@ -8,13 +8,9 @@ const { default: PQueue } = require('p-queue')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
 const util = require('./util')
-const { FS } = require('@tabcat/orbit-db-fsstore')
-const { content, read, ls, pathName } = FS
+const { FS: { content, read, ls, pathName, errors } } = require('@tabcat/orbit-db-fsstore')
 
-const errors = {
-  ...FS.errors,
-  notStarted: () => new Error('sharedfs was not started')
-}
+errors.notStarted = () => new Error('sharedfs was not started')
 
 const writeReqs = (self) => {
   if (!self.running) throw errors.notStarted()
