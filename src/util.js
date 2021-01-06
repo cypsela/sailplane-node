@@ -71,8 +71,7 @@ async function catCid (ipfs, cid, { Crypter, key, iv, handleUpdate } = {}) {
 
 const verifyPub = (publicKeyBuf) => secp256k1.publicKeyVerify(publicKeyBuf)
 
-const compressedPub = (publicKeyBuf) =>
-  Buffer.from(secp256k1.publicKeyConvert(publicKeyBuf, true))
+const compressedPub = (publicKeyBuf) => Buffer.from(secp256k1.publicKeyConvert(publicKeyBuf, true))
 
 module.exports = {
   ipfsAddConfig,
