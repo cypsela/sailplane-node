@@ -109,7 +109,7 @@ class AccessControl {
     if (!this.hasRead && this.running) throw new Error('no read permissions, cannot grant read')
     if (!this.crypted) throw new Error('db not encrypted, cannot grant read')
 
-    const bufferKey = Buffer.from(publicKey, 'hex')
+    const bufferKey = util.hex2buf(publicKey)
     if (!util.verifyPub(bufferKey)) throw new Error('invalid publicKey provided')
 
     try {
@@ -123,7 +123,7 @@ class AccessControl {
         cipherbytes: b64.fromByteArray(new Uint8Array(cipherbytes)),
         iv: b64.fromByteArray(iv)
       }
-      const compressedHexPub = util.compressedPub(bufferKey).toString('hex')
+      const compressedHexPub = util.buf2hex(util.compressedPub(bufferKey))
 
       await this._ac.grant(perms.read, compressedHexPub)
       await this._ac.grant(compressedHexPub, encryptedKey)
@@ -136,7 +136,7 @@ class AccessControl {
 
   async _setCrypter () {
     if (!this.Crypter) throw missingCrypter()
-    const compressedHexPub = util.compressedPub(Buffer.from(this.identity.publicKey, 'hex')).toString('hex')
+    const compressedHexPub = util.buf2hex(util.compressedPub(util.hex2buf(this.identity.publicKey)))
     const read = this.read.has(this.identity.publicKey) || this.read.has(compressedHexPub)
     const set = this._ac._db.get(this.identity.publicKey) || this._ac._db.get(compressedHexPub)
     if (!read || !set) {
@@ -147,7 +147,7 @@ class AccessControl {
     try {
       const { publicKey, cipherbytes, iv } = set.values().next().value
       const privateKey = await this.identity.provider.keystore.getKey(this.identity.id)
-      const crypter = await this._sharedCrypter(Buffer.from(publicKey, 'hex'), privateKey.marshal())
+      const crypter = await this._sharedCrypter(util.hex2buf(publicKey), privateKey.marshal())
       const driveKey = await crypter.decrypt(b64.toByteArray(cipherbytes).buffer, b64.toByteArray(iv))
 
       const cryptoKey = await this.Crypter.importKey(driveKey)

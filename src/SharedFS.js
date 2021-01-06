@@ -3,7 +3,6 @@
 
 const AccessControl = require('./AccessControl')
 const EventEmitter = require('events').EventEmitter
-const Buffer = require('safe-buffer').Buffer
 const { default: PQueue } = require('p-queue')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
@@ -79,8 +78,8 @@ class SharedFS {
 
   async start () {
     if (this.running !== null) { return }
-    this._emptyDirCid = await this._ipfs.object.put({ Data: Buffer.from([8, 1]) })
-    this._emptyFileCid = await this._ipfs.object.put({ Data: Buffer.from([8, 2]) })
+    this._emptyDirCid = await this._ipfs.object.put({ Data: Uint8Array.from([8, 1]) })
+    this._emptyFileCid = await this._ipfs.object.put({ Data: Uint8Array.from([8, 2]) })
     this._CID = this._emptyFileCid.constructor
     this.access = await AccessControl.create(this._db, this.options)
     this.access.events.on('encrypted', this._onDbUpdate)
@@ -255,7 +254,7 @@ class SharedFS {
       )
       if (dirLinks.length === 0) return this._emptyDirCid
       // Data buffer says unixFs and directory
-      return this._ipfs.object.put({ Data: Buffer.from([8, 1]), Links: dirLinks })
+      return this._ipfs.object.put({ Data: Uint8Array.from([8, 1]), Links: dirLinks })
     }
 
     try {

@@ -1,10 +1,10 @@
 
 'use strict'
 
-const Buffer = require('safe-buffer').Buffer
 const b64 = require('base64-js')
 const secp256k1 = require('secp256k1')
 const all = require('it-all')
+const concatUint8 = require('uint8arrays/concat')
 
 const ipfsAddConfig = { pin: false, wrapWithDirectory: false }
 
@@ -29,12 +29,10 @@ const sharedCrypter = (Crypter) => async (publicKey, privateKey) => {
 }
 
 const combineChunks = async (content, { handleUpdate, total } = {}) => {
-  let chunks = Buffer.from([])
-  let i = 0
+  let chunks = Uint8Array.from([])
   for await (const chunk of content) {
-    chunks = Buffer.concat([chunks, Buffer.from(chunk)])
+    chunks = concatUint8([chunks, chunk])
     if (handleUpdate) handleUpdate(chunks.length, total)
-    i++
   }
   return chunks
 }
@@ -71,7 +69,10 @@ async function catCid (ipfs, cid, { Crypter, key, iv, handleUpdate } = {}) {
 
 const verifyPub = (publicKeyBuf) => secp256k1.publicKeyVerify(publicKeyBuf)
 
-const compressedPub = (publicKeyBuf) => Buffer.from(secp256k1.publicKeyConvert(publicKeyBuf, true))
+const compressedPub = (publicKeyBuf) => secp256k1.publicKeyConvert(publicKeyBuf, true)
+
+const buf2hex = (ab) => ab.reduce((hex, byte) => hex + ('00' + byte.toString(16)).slice(-2), '')
+const hex2buf = (hex) => Uint8Array.from(hex.match(/.{2}/g).map(h => parseInt(h, 16)))
 
 module.exports = {
   ipfsAddConfig,
@@ -84,5 +85,7 @@ module.exports = {
   encryptContent,
   catCid,
   verifyPub,
-  compressedPub
+  compressedPub,
+  buf2hex,
+  hex2buf
 }
