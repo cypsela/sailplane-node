@@ -695,7 +695,7 @@ Object.keys(testAPIs).forEach(API => {
         assert.strict.equal(ipfsObjectStat.BlockSize, 63)
         assert.strict.equal(ipfsObjectStat.LinksSize, 61)
         assert.strict.equal(ipfsObjectStat.DataSize, 2)
-        assert.strict.equal(ipfsObjectStat.CumulativeSize, 1961078)
+        assert.strict.equal(ipfsObjectStat.CumulativeSize, 1952888)
       })
 
       it('read a non existing path throws', async function () {
