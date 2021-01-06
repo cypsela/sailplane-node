@@ -11,9 +11,13 @@ const { FS: { content, read, ls, pathName, errors } } = require('@tabcat/orbit-d
 
 errors.notStarted = () => new Error('sharedfs was not started')
 
-const writeReqs = (self) => {
+const readReqs = (self) => {
   if (!self.running) throw errors.notStarted()
   if (!self.access.hasRead) throw new Error('missing read access')
+}
+
+const writeReqs = (self) => {
+  readReqs(self)
   if (!self.access.hasWrite) throw new Error('missing write access')
 }
 
@@ -188,11 +192,13 @@ class SharedFS {
   }
 
   async read (path) {
+    readReqs(this)
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     return this._computeCid(path)
   }
 
   cat (path, options = {}) {
+    readReqs(this)
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     if (this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
     const file = this.fs.read(path)
