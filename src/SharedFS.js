@@ -71,8 +71,6 @@ class SharedFS {
 
   get encrypted () { return this.access.crypted }
 
-  get Crypter () { return this.access.Crypter }
-
   static async create (fsstore, ipfs, options = {}) {
     const sharedfs = new SharedFS(fsstore, ipfs, options)
     if (sharedfs.options.autoStart) await sharedfs.start()
@@ -141,7 +139,7 @@ class SharedFS {
             batch.mk(prefix(fsPath), name(fsPath))
           }
           const { mode, mtime, content } = item
-          const enc = this.encrypted && await util.encryptContent(this.Crypter, content)
+          const enc = this.encrypted && await util.encryptContent(this.access.Crypter, content)
           const data = this.encrypted ? enc.cipherbytes : content
           const { cid } = await this._ipfs.add(data, ipfsAddOptions)
           if (util.readCid(this.fs.read(fsPath)) !== cid.toString()) {
@@ -200,7 +198,7 @@ class SharedFS {
       data: () => util.catCid(
         this._ipfs,
         util.readCid(file),
-        { Crypter: this.Crypter, key, iv, handleUpdate: options.handleUpdate }
+        { Crypter: this.access.Crypter, key, iv, handleUpdate: options.handleUpdate }
       )
     }
   }
