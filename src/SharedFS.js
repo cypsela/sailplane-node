@@ -17,6 +17,11 @@ const writeReqs = (self) => {
   if (!self.access.hasWrite) throw new Error('missing write access')
 }
 
+const unixFsType = {
+  dir: () => Uint8Array.from([8, 1]),
+  file: () => Uint8Array.from([8, 2])
+}
+
 const storeTypes = { lite: 0, full: 1, archive: 2 }
 
 const defaultOptions = {
@@ -78,8 +83,8 @@ class SharedFS {
 
   async start () {
     if (this.running !== null) { return }
-    this._emptyDirCid = await this._ipfs.object.put({ Data: Uint8Array.from([8, 1]) })
-    this._emptyFileCid = await this._ipfs.object.put({ Data: Uint8Array.from([8, 2]) })
+    this._emptyDirCid = await this._ipfs.object.put({ Data: unixFsType.dir() })
+    this._emptyFileCid = await this._ipfs.object.put({ Data: unixFsType.file() })
     this._CID = this._emptyFileCid.constructor
     this.access = await AccessControl.create(this._db, this.options)
     this.access.events.on('encrypted', this._onDbUpdate)
@@ -253,8 +258,8 @@ class SharedFS {
           })
       )
       if (dirLinks.length === 0) return this._emptyDirCid
-      // Data buffer says unixFs and directory
-      return this._ipfs.object.put({ Data: Uint8Array.from([8, 1]), Links: dirLinks })
+      // Data says unixFs and directory
+      return this._ipfs.object.put({ Data: unixFsType.dir(), Links: dirLinks })
     }
 
     try {
