@@ -10,7 +10,7 @@ const ipfsAddConfig = { pin: false, wrapWithDirectory: false }
 
 const removeSlash = (path) => path.slice(path.startsWith('/') ? 1 : 0)
 
-const sortFn = (o, t) => o.toLowerCase().localeCompare(t.toLowerCase())
+const sortFn = (a, b) => a.toLowerCase().localeCompare(b.toLowerCase())
 
 const validCid = function (CID, cid) {
   try {
