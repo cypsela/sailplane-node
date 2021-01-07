@@ -9,7 +9,7 @@ const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
 const { cids, crypto, buffer: { combineChunks }, ...util } = require('./util')
 const {
-  FS: { content, read, ls, pathName, errors, lowercase: opcodes }
+  FS: { content, read, ls, pathName, errors, lowercase: opcodes, cTypes }
 } = require('@tabcat/orbit-db-fsstore')
 
 errors.notStarted = () => new Error('sharedfs was not started')
@@ -214,7 +214,7 @@ class SharedFS {
   cat (path, { handleUpdate } = {}) {
     readReqs(this)
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
-    if (this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
+    if (this.fs.content(path) !== cTypes.file) throw errors.pathFileNo(path)
     const file = this.fs.read(path)
     const cid = this._realCid(cids.readCid(file))
 
@@ -232,7 +232,7 @@ class SharedFS {
   }
 
   _handleMutateFns(op, path, dest, name) {
-    const key = this.fs.content(path) === 'dir' ? op + 'dir' : op
+    const key = this.fs.content(path) === cTypes.dir ? op + cTypes.dir : op
     return this._db[key](path, dest, name)
   }
 
@@ -261,7 +261,7 @@ class SharedFS {
     }
 
     const pathCid = async (fs, path) => {
-      if (content(fs, path) === 'file') {
+      if (content(fs, path) === cTypes.file) {
         return this._realCid(cids.readCid(read(fs, path)))
       }
       const dirLinks = await Promise.all(
