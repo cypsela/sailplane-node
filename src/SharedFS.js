@@ -70,6 +70,7 @@ class SharedFS {
     this._emptyDirCid = null
     this._emptyFileCid = null
     this._CID = null
+    this._realCid = (cid) => cids.parseCid(this._CID, cid) || this._emptyFileCid
 
     this.access = null
     this.running = null
@@ -245,10 +246,7 @@ class SharedFS {
 
     const pathCid = async (fs, path) => {
       if (content(fs, path) === 'file') {
-        return cids.parseCid(
-          this._CID,
-          cids.readCid(read(fs, path))
-        ) || this._emptyFileCid
+        return this._realCid(cids.readCid(read(fs, path)))
       }
       const dirLinks = await Promise.all(
         ls(fs, path)
