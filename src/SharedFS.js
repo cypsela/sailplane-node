@@ -8,7 +8,9 @@ const all = require('it-all')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
 const { cids, crypto, buffer: { combineChunks }, ...util } = require('./util')
-const { FS: { content, read, ls, pathName, errors } } = require('@tabcat/orbit-db-fsstore')
+const {
+  FS: { content, read, ls, pathName, errors, lowercase: opcodes }
+} = require('@tabcat/orbit-db-fsstore')
 
 errors.notStarted = () => new Error('sharedfs was not started')
 
@@ -209,7 +211,7 @@ class SharedFS {
     return this._computeCid(path)
   }
 
-  cat (path, options = {}) {
+  cat (path, { handleUpdate } = {}) {
     readReqs(this)
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     if (this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
@@ -220,10 +222,7 @@ class SharedFS {
       data: async () => {
         let [{ content, size: total }] = await all(this._ipfs.get(cid))
         if (!content || total === 0) return new Uint8Array()
-        content = await combineChunks(
-          this._ipfs.cat(cid),
-          { total, handleUpdate: options.handleUpdate }
-        )
+        content = await combineChunks(this._ipfs.cat(cid), { total, handleUpdate })
 
         return this.encrypted
           ? crypto.decryptContent(this.access.Crypter, content, { key: file.key, iv: file.iv })
@@ -232,27 +231,26 @@ class SharedFS {
     }
   }
 
+  _handleMutateFns(op, path, dest, name) {
+    const key = this.fs.content(path) === 'dir' ? op + 'dir' : op
+    return this._db[key](path, dest, name)
+  }
+
   async remove (path) {
     writeReqs(this)
-    this.fs.content(path) === 'dir'
-      ? await this._db.rmdir(path)
-      : await this._db.rm(path)
+    await this._handleMutateFns(opcodes.RM, path)
     this.events.emit('remove')
   }
 
   async move (path, dest, name) {
     writeReqs(this)
-    this.fs.content(path) === 'dir'
-      ? await this._db.mvdir(path, dest, name)
-      : await this._db.mv(path, dest, name)
+    await this._handleMutateFns(opcodes.MV, path, dest, name)
     this.events.emit('move')
   }
 
   async copy (path, dest, name) {
     writeReqs(this)
-    this.fs.content(path) === 'dir'
-      ? await this._db.cpdir(path, dest, name)
-      : await this._db.cp(path, dest, name)
+    await this._handleMutateFns(opcodes.CP, path, dest, name)
     this.events.emit('copy')
   }
 
