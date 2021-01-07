@@ -4,9 +4,10 @@
 const AccessControl = require('./AccessControl')
 const EventEmitter = require('events').EventEmitter
 const { default: PQueue } = require('p-queue')
+const all = require('it-all')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
-const { cids, crypto, ...util } = require('./util')
+const { cids, crypto, buffer: { combineChunks }, ...util } = require('./util')
 const { FS: { content, read, ls, pathName, errors } } = require('@tabcat/orbit-db-fsstore')
 
 errors.notStarted = () => new Error('sharedfs was not started')
@@ -147,13 +148,23 @@ class SharedFS {
           if (!this.fs.exists(fsPath)) {
             batch.mk(prefix(fsPath), name(fsPath))
           }
-          const { mode, mtime, content } = item
-          const enc = this.encrypted && await crypto.encryptContent(this.access.Crypter, content)
-          const data = this.encrypted ? enc.cipherbytes : content
-          const { cid } = await this._ipfs.add(data, ipfsAddOptions)
+          const { mtime, content } = item
+          let src, decrypt = {}
+          if (this.encrypted) {
+            const enc = await crypto.encryptContent(
+              this.access.Crypter,
+              await combineChunks(content)
+            )
+            src = enc.cipherbytes
+            decrypt = { key: enc.key, iv: enc.iv }
+          } else {
+            src = content
+          }
+
+          const { cid } = await this._ipfs.add(src, ipfsAddOptions)
           if (cids.readCid(this.fs.read(fsPath)) !== cid.toString()) {
-            const decrypt = this.encrypted ? { key: enc.rawKey, iv: enc.iv } : {}
-            batch.write(fsPath, { cid: cid.toString(), ...decrypt, ...mtime ? { mtime } : {} })
+            const json = { cid: cid.toString(), ...decrypt, ...(mtime ? { mtime } : {}) }
+            batch.write(fsPath, json)
           }
         } else {
           if (!this.fs.exists(fsPath)) {
@@ -203,14 +214,21 @@ class SharedFS {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     if (this.fs.content(path) !== 'file') throw errors.pathFileNo(path)
     const file = this.fs.read(path)
-    const key = file && file.key
-    const iv = file && file.iv
+    const cid = this._realCid(cids.readCid(file))
+
     return {
-      data: () => crypto.catCid(
-        this._ipfs,
-        cids.readCid(file),
-        { Crypter: this.access.Crypter, key, iv, handleUpdate: options.handleUpdate }
-      )
+      data: async () => {
+        let [{ content, size: total }] = await all(this._ipfs.get(cid))
+        if (!content || total === 0) return new Uint8Array()
+        content = await combineChunks(
+          this._ipfs.cat(cid),
+          { total, handleUpdate: options.handleUpdate }
+        )
+
+        return this.encrypted
+          ? crypto.decryptContent(this.access.Crypter, content, { key: file.key, iv: file.iv })
+          : content
+      }
     }
   }
 
