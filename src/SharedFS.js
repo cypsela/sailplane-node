@@ -243,17 +243,12 @@ class SharedFS {
       return
     }
 
-    const fileCid = (cid) => {
-      try {
-        return new this._CID(cid)
-      } catch (e) {
-        return this._emptyFileCid
-      }
-    }
-
     const pathCid = async (fs, path) => {
       if (content(fs, path) === 'file') {
-        return fileCid(cids.readCid(read(fs, path)))
+        return cids.parseCid(
+          this._CID,
+          cids.readCid(read(fs, path))
+        ) || this._emptyFileCid
       }
       const dirLinks = await Promise.all(
         ls(fs, path)

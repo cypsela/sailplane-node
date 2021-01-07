@@ -1,16 +1,19 @@
 'use strict'
 
-const validCid = function (CID, cid) {
+const parseCid = function (CID, cid) {
   try {
-    return Boolean(new CID(cid))
+    return new CID(cid)
   } catch (e) {
-    return false
+    return undefined
   }
 }
+
+const validCid = (CID, cid) => Boolean(parseCid(CID, cid))
 
 const readCid = (read) => read && read.cid
 
 module.exports = {
+  parseCid,
   validCid,
   readCid
 }
