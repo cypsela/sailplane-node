@@ -51,6 +51,7 @@ class SharedFS {
     this.fs.root = this._db.root
     this.fs.joinPath = this._db.joinPath
     this.fs.pathName = this._db.pathName
+    this.fs.baseName = this._db.baseName
     this.fs.exists = this._db.exists
     this.fs.content = this._db.content
     this.fs.read = this._db.read
@@ -134,8 +135,6 @@ class SharedFS {
 
   async upload (path, source, options = {}) {
     writeReqs(this)
-    const prefix = (path) => path.slice(0, Math.max(path.lastIndexOf('/'), 0))
-    const name = (path) => path.slice(path.lastIndexOf('/') + 1)
 
     const ipfsAddOptions = { ...options, ...util.ipfsAddConfig }
 
@@ -148,7 +147,7 @@ class SharedFS {
         const fsPath = `${path}${item.path && `/${item.path}`}`
         if (item.content) {
           if (!this.fs.exists(fsPath)) {
-            batch.mk(prefix(fsPath), name(fsPath))
+            batch.mk(this.fs.baseName(fsPath), this.fs.pathName(fsPath))
           }
           const { mtime, content } = item
           let src, decrypt = {}
@@ -170,7 +169,7 @@ class SharedFS {
           }
         } else {
           if (!this.fs.exists(fsPath)) {
-            batch.mkdir(prefix(fsPath), name(fsPath))
+            batch.mkdir(this.fs.baseName(fsPath), this.fs.pathName(fsPath))
           }
         }
       }
