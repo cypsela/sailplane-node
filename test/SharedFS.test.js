@@ -9,6 +9,7 @@ const SailplaneNode = require('../src')
 const { sortFn, buffer: { concatBuffers }, cids: { readCid } } = require('../src/util')
 const globSource = require('ipfs-utils/src/files/glob-source')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
+const compareUint8 = require('uint8arrays/compare')
 const { ipfsAddPath } = require('./util')
 const Crypter = require('@tabcat/aes-gcm-crypter')
 const fileContent = async (path) => {
@@ -31,6 +32,22 @@ Object.keys(testAPIs).forEach(API => {
     this.timeout(config.timeout)
 
     let ipfsd, ipfs, orbitdb1, sailplane1, address1, file1, sharedfs1
+
+    async function catTest (path) {
+      let updatedCount = 0
+      let uploadCount = 0
+      sharedfs1.events.once('updated', () => updatedCount++)
+      sharedfs1.events.once('upload', () => uploadCount++)
+
+      await sharedfs1.upload('/r', globSource(path))
+      assert.strict.equal(updatedCount, 1)
+      assert.strict.equal(uploadCount, 1)
+
+      const filePath = '/r/' + sharedfs1.fs.pathName(path.slice(1))
+      const cat = sharedfs1.cat(filePath)
+      const buffer = await cat.data()
+      assert.strict.equal(compareUint8(buffer, await fileContent(path)), 0)
+    }
 
     before(async () => {
       config.daemon1.repo = ipfsPath
@@ -227,23 +244,8 @@ Object.keys(testAPIs).forEach(API => {
       })
 
       it('cat a file', async function () {
-        const path = './test/fixtures/folderWithFiles/mittens.jpg'
-        let updatedCount = 0
-        let uploadCount = 0
-        sharedfs1.events.on('updated', () => updatedCount++)
-        sharedfs1.events.on('upload', () => uploadCount++)
-
-        await sharedfs1.upload('/r', globSource(path))
-        assert.strict.equal(updatedCount, 1)
-        assert.strict.equal(uploadCount, 1)
-
-        const filePath = '/r/mittens.jpg'
-        assert.strict.deepEqual(sharedfs1.fs.tree('/r'), [filePath])
-
-        const cat = sharedfs1.cat(filePath)
-        const buffer = await cat.data()
-        assert.strict.equal(buffer.length, 16634)
-        assert.strict.equal(buffer.toString(), (await fileContent(path)).toString())
+        await catTest('./test/fixtures/folderWithFiles/mittens.jpg')
+        await catTest('./test/fixtures/folderWithFiles/hello.txt')
       })
 
       it('cat a directory throws', async function () {
@@ -708,23 +710,8 @@ Object.keys(testAPIs).forEach(API => {
       })
 
       it('cat a file', async function () {
-        const path = './test/fixtures/folderWithFiles/mittens.jpg'
-        let updatedCount = 0
-        let uploadCount = 0
-        sharedfs1.events.on('updated', () => updatedCount++)
-        sharedfs1.events.on('upload', () => uploadCount++)
-
-        await sharedfs1.upload('/r', globSource(path))
-        assert.strict.equal(updatedCount, 1)
-        assert.strict.equal(uploadCount, 1)
-
-        const filePath = '/r/mittens.jpg'
-        assert.strict.deepEqual(sharedfs1.fs.tree('/r'), [filePath])
-
-        const cat = sharedfs1.cat(filePath)
-        const buffer = await cat.data()
-        assert.strict.equal(buffer.length, 16634)
-        assert.strict.equal(buffer.toString(), (await fileContent(path)).toString())
+        await catTest('./test/fixtures/folderWithFiles/mittens.jpg')
+        await catTest('./test/fixtures/folderWithFiles/hello.txt')
       })
 
       it('cat a directory throws', async function () {
