@@ -223,7 +223,7 @@ class SharedFS {
           console.warn(`failed to cat ${path}: cid is a unixfs dir`)
         }
         if (!content || total === 0) return new Uint8Array()
-        content = await concatBuffers(this._ipfs.cat(cid), { total, handleUpdate })
+        content = await concatBuffers(content, { total, handleUpdate })
 
         return this.encrypted
           ? crypto.decryptContent(this.access.Crypter, content, { key: file.key, iv: file.iv })
