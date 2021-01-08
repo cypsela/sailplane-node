@@ -6,10 +6,15 @@ const rmrf = require('rimraf')
 const path = require('path')
 const OrbitDB = require('orbit-db')
 const SailplaneNode = require('../src')
-const { cids: { readCid }, sortFn } = require('../src/util')
+const { sortFn, buffer: { concatBuffers }, cids: { readCid } } = require('../src/util')
 const globSource = require('ipfs-utils/src/files/glob-source')
+const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const { ipfsAddPath } = require('./util')
 const Crypter = require('@tabcat/aes-gcm-crypter')
+const fileContent = async (path) => {
+  const { value: { content } } = await normaliseInput(globSource(path)).next()
+  return concatBuffers(content)
+}
 
 const {
   config,
@@ -238,6 +243,7 @@ Object.keys(testAPIs).forEach(API => {
         const cat = sharedfs1.cat(filePath)
         const buffer = await cat.data()
         assert.strict.equal(buffer.length, 16634)
+        assert.strict.equal(buffer.toString(), (await fileContent(path)).toString())
       })
 
       it('cat a directory throws', async function () {
@@ -718,6 +724,7 @@ Object.keys(testAPIs).forEach(API => {
         const cat = sharedfs1.cat(filePath)
         const buffer = await cat.data()
         assert.strict.equal(buffer.length, 16634)
+        assert.strict.equal(buffer.toString(), (await fileContent(path)).toString())
       })
 
       it('cat a directory throws', async function () {
