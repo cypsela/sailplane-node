@@ -4,7 +4,6 @@
 const AccessControl = require('./AccessControl')
 const EventEmitter = require('events').EventEmitter
 const { default: PQueue } = require('p-queue')
-const all = require('it-all')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
 const { cids, crypto, buffer: { concatBuffers }, ...util } = require('./util')
@@ -219,7 +218,7 @@ class SharedFS {
 
     return {
       data: async () => {
-        let [{ content, size: total }] = await all(this._ipfs.get(cid))
+        let { value: { content, size: total } } = await this._ipfs.get(cid).next()
         if (!content || total === 0) return new Uint8Array()
         content = await concatBuffers(this._ipfs.cat(cid), { total, handleUpdate })
 

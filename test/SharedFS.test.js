@@ -10,7 +10,6 @@ const { cids: { readCid }, sortFn } = require('../src/util')
 const globSource = require('ipfs-utils/src/files/glob-source')
 const { ipfsAddPath } = require('./util')
 const Crypter = require('@tabcat/aes-gcm-crypter')
-const all = require('it-all')
 
 const {
   config,
