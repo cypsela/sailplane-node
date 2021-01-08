@@ -219,6 +219,9 @@ class SharedFS {
     return {
       data: async () => {
         let { value: { content, size: total } } = await this._ipfs.get(cid).next()
+        if (!content) {
+          console.warn(`failed to cat ${path}: cid is a unixfs dir`)
+        }
         if (!content || total === 0) return new Uint8Array()
         content = await concatBuffers(this._ipfs.cat(cid), { total, handleUpdate })
 
