@@ -231,24 +231,22 @@ class SharedFS {
   }
 
   _handleMutateFns(op, path, dest, name) {
+    writeReqs(this)
     const key = this.fs.content(path) === cTypes.dir ? op + cTypes.dir : op
     return this._db[key](path, dest, name)
   }
 
   async remove (path) {
-    writeReqs(this)
     await this._handleMutateFns(opcodes.RM, path)
     this.events.emit('remove')
   }
 
   async move (path, dest, name) {
-    writeReqs(this)
     await this._handleMutateFns(opcodes.MV, path, dest, name)
     this.events.emit('move')
   }
 
   async copy (path, dest, name) {
-    writeReqs(this)
     await this._handleMutateFns(opcodes.CP, path, dest, name)
     this.events.emit('copy')
   }
