@@ -73,7 +73,9 @@ class SharedFS {
     this._emptyDirCid = null
     this._emptyFileCid = null
     this._CID = null
-    this._realCid = (cid) => cids.parseCid(this._CID, cid) || this._emptyFileCid
+    this._realCid = (cid) => validCid(cid)
+      ? cids.parseCid(this._CID, cid)
+      : this._emptyFileCid
 
     this.access = null
     this.running = null
