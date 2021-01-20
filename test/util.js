@@ -2,7 +2,7 @@
 'use strict'
 const first = require('it-first')
 const last = require('it-last')
-const { cids: { readCid }, ipfsAddConfig } = require('../src/util')
+const { readCid, ipfsAddConfig } = require('../src/util')
 
 async function ipfsAddPath (path = this.fs.root) {
   const fileCid = (cid) => {

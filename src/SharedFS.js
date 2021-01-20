@@ -6,7 +6,7 @@ const EventEmitter = require('events').EventEmitter
 const { default: PQueue } = require('p-queue')
 const normaliseInput = require('ipfs-core-utils/src/files/normalise-input')
 const treeBuilder = require('./tree-builder')
-const { cids, crypto, buffer: { concatBuffers }, ...util } = require('./util')
+const { crypto, buffer: { concatBuffers }, ...util } = require('./util')
 const {
   FS: { content, read, ls, pathName, errors, lowercase: opcodes, cTypes }
 } = require('@tabcat/orbit-db-fsstore')
@@ -37,6 +37,7 @@ const defaultOptions = {
   storeType: storeTypes.lite,
   Crypter: null
 }
+
 
 class SharedFS {
   constructor (db, ipfs, options = {}) {
@@ -73,9 +74,13 @@ class SharedFS {
     this._emptyDirCid = null
     this._emptyFileCid = null
     this._CID = null
-    this._realCid = (cid) => validCid(cid)
-      ? cids.parseCid(this._CID, cid)
-      : this._emptyFileCid
+    this._realCid = (cid) => {
+      try {
+        return new this._CID(cid)
+      } catch (e) {
+        return this._emptyFileCid
+      }
+    }
 
     this.access = null
     this.running = null
@@ -164,7 +169,7 @@ class SharedFS {
           }
 
           const { cid } = await this._ipfs.add(src, ipfsAddOptions)
-          if (cids.readCid(this.fs.read(fsPath)) !== cid.toString()) {
+          if (util.readCid(this.fs.read(fsPath)) !== cid.toString()) {
             const json = { cid: cid.toString(), ...decrypt, ...(mtime ? { mtime } : {}) }
             batch.write(fsPath, json)
           }
@@ -200,7 +205,7 @@ class SharedFS {
 
   async write (path, cid, options = {}) {
     writeReqs(this)
-    if (!cids.validCid(this._CID, cid)) throw new Error('invalid cid')
+    if (!this._CID.isCID(cid)) throw new Error('invalid cid')
     await this._db.write(path, { cid: cid.toString(), key: options.key })
     this.events.emit('write')
   }
@@ -216,7 +221,7 @@ class SharedFS {
     if (!this.fs.exists(path)) throw errors.pathExistNo(path)
     if (this.fs.content(path) !== cTypes.file) throw errors.pathFileNo(path)
     const file = this.fs.read(path)
-    const cid = this._realCid(cids.readCid(file))
+    const cid = this._realCid(util.readCid(file))
 
     return {
       data: async () => {
@@ -263,7 +268,7 @@ class SharedFS {
 
     const pathCid = async (fs, path) => {
       if (content(fs, path) === cTypes.file) {
-        return this._realCid(cids.readCid(read(fs, path)))
+        return this._realCid(util.readCid(read(fs, path)))
       }
       const dirLinks = await Promise.all(
         ls(fs, path)
