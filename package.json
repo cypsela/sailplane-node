@@ -40,7 +40,7 @@
     "it-first": "^1.0.2",
     "mocha": "^7.2.0",
     "orbit-db": "^0.26.0",
-    "orbit-db-test-utils": "^0.12.1",
+    "orbit-db-test-utils": "^2.2.0",
     "rimraf": "^3.0.2"
   }
 }
